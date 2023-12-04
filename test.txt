@@ -1,0 +1,78 @@
+label_0000:
+	// Inputs[1] { @0005  msg.value }
+	0000    60  PUSH1 0x80
+	0002    60  PUSH1 0x40
+	0004    52  MSTORE
+	0005    34  CALLVALUE
+	0006    80  DUP1
+	0007    15  ISZERO
+	0008    60  PUSH1 0x0e
+	000A    57  *JUMPI
+	// Stack delta = +1
+	// Outputs[2]
+	// {
+	//     @0004  memory[0x40:0x60] = 0x80
+	//     @0005  stack[0] = msg.value
+	// }
+	// Block ends with conditional jump to 0x000e, if !msg.value
+
+label_000B:
+	// Incoming jump from 0x000A, if not !msg.value
+	000B    5F  5F
+	// Stack delta = +0
+	// Block terminates
+
+	000C    80    DUP1
+	000D    FD    *REVERT
+label_000E:
+	// Incoming jump from 0x000A, if !msg.value
+	000E    5B  JUMPDEST
+	000F    50  POP
+	0010    60  PUSH1 0x3e
+	0012    80  DUP1
+	0013    60  PUSH1 0x1a
+	0015    5F  5F
+	// Stack delta = +2
+	// Outputs[3]
+	// {
+	//     @0010  stack[-1] = 0x3e
+	//     @0012  stack[0] = 0x3e
+	//     @0013  stack[1] = 0x1a
+	// }
+	// Block terminates
+
+	0016    39    CODECOPY
+	0017    5F    5F
+	0018    F3    *RETURN
+	0019    FE    *ASSERT
+	001A    60    PUSH1 0x80
+	001C    60    PUSH1 0x40
+	001E    52    MSTORE
+	001F    5F    5F
+	0020    80    DUP1
+	0021    FD    *REVERT
+	0022    FE    *ASSERT
+	0023    A2    LOG2
+	0024    64    PUSH5 0x6970667358
+	002A    22    22
+	002B    12    SLT
+	002C    20    SHA3
+	002D    B0    PUSH
+	002E    16    AND
+	002F    37    CALLDATACOPY
+	0030    47    SELFBALANCE
+	0031    26    26
+	0032    36    CALLDATASIZE
+	0033    C2    C2
+	0034    96    SWAP7
+	0035    AE    AE
+	0036    F4    DELEGATECALL
+	0037    6B    PUSH12 0x6374f349865a90b5778b9256
+	0044    2F    2F
+	0045    35    CALLDATALOAD
+	0046    3F    EXTCODEHASH
+	0047    D9    D9
+	0048    19    NOT
+	0049    13    SGT
+	004A    63    PUSH4 0xe1c86473
+	004F    6F    PUSH16 0x6c63430008140033
