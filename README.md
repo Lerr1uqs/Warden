@@ -16,3 +16,6 @@ $ cat /home/squ/prac/soli-prac/contracts/ReentryProtected.bin | evmasm -d
 0000000c: DUP1
 0000000d: REVERT
 ```
+# TODO:
+- 使用deque
+- chop用来拆分BV
