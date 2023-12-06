@@ -5,7 +5,8 @@ import copy
 BV = claripy.ast.BV
 bvv = lambda v : claripy.BVV(v, 256)
 # NOTE: 内存的写入操作是找到freemem_pointer然后写4个字节过去 每一个slot还是32字节 所以这里只需要按地址编排写入位置即可 不需要管slot的索引了
-class Memory:
+class Memory(BaseModel):
+# class Memory():
     '''
     memory的存储粒度是word 也就是4字节
     RETURN指令执行的时候是借助return mem[ost:ost+len-1]的 所以返回值一定会加载到内存中
@@ -13,11 +14,23 @@ class Memory:
     _mem_limit    = 0x2000# TODO: 暂时
     _have_read    = set()
     _have_written = set()# TODO:
+    _msize        : int = 0
+    _mem: Dict[int, BV] = {}
 
     def __init__(self) -> None:
-        self._msize = 0
+        super().__init__()# 一定要先初始化pydantic的基类 不然很多东西都没注册
+        # self._msize = 0
         # NOTE: 粒度为1byte
+        # self._mem: Dict[int, BV] = {}
+        # import pdb;pdb.set_trace()
         self._mem: Dict[int, BV] = {}
+        self._msize = 0
+
+    def __hash__(self) -> int:# TODO:
+        r = 0
+        for k, v in self._mem.items():
+            r ^= hash(k) ^ hash(v)
+        return r ^ hash(self._msize)
 
 
     def __len__(self):

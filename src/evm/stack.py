@@ -5,8 +5,10 @@ BV = claripy.ast.BV
 T = TypeVar("T")
 
 class Stack(Generic[T]):
+    stack: List[T] = []
     def __init__(self) -> None:
-        self.stack = []
+        # self.stack: List[T] = []
+        ...
 
     def __repr__(self) -> str:
         s = [""]
