@@ -2,7 +2,6 @@ from see import SymExecEngine
 from disassembler import SolidityBinary
 from evm.contract import Contract
 
-from evm_cfg_builder.cfg import CFG, BasicBlock
 from typing import Dict
 import sys
 
@@ -12,13 +11,8 @@ path = "./store.bin"
 # TODO: pythonpath env var
 sb = SolidityBinary(path)# TODO:
 con = Contract()# TODO: remove sb to contract
-cfg = CFG(sb.bytecode) # TODO: runtime
+# cfg = CFG(sb.bytecode) # TODO: runtime
 
-bbs: Dict[int, BasicBlock] = getattr(cfg, "_basic_blocks")# dict[addr, BasicBlock]
-for (pc, bb) in bbs.items():
-    print(f"bb at {pc}")
-    ...
-sys.exit(0)
 
 see = SymExecEngine(sb, con)
 try:
