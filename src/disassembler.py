@@ -4,17 +4,13 @@ import evmdasm
 from binascii import (hexlify, unhexlify)
 
 class SolidityBinary:
-    # TODO: opt here
-    def pc2inst(self, pc: int) -> evmdasm.Instruction:
-        for inst in self.instructions:
-            if pc >= inst.address and pc < inst.address + inst.size:
-                return inst
-            
-        raise NotImplementedError
+
+    code: str = ""
     
     def __init__(self, filename: str) -> None:
         with open(filename, 'r') as file:
             bin = file.read()
+            self.code = bin
 
         # TODO: remove it
         # if bin.startswith("0x"):
@@ -35,3 +31,10 @@ class SolidityBinary:
         
         return pc < len(insts) and self.pc2inst(pc).opcode == jumpdest
 
+    # TODO: opt here
+    def pc2inst(self, pc: int) -> evmdasm.Instruction:
+        for inst in self.instructions:
+            if pc >= inst.address and pc < inst.address + inst.size:
+                return inst
+            
+        raise NotImplementedError
