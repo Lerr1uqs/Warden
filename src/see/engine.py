@@ -94,7 +94,7 @@ class SymExecEngine:
         logger.debug("Constraints: %s" % state.solver.constraints)
 
         while True:
-            if state.pc >= len(self.sb.instructions):
+            if state.pc >= len(self.sb.end_addr):
                 return True
             # need to setup a map in pc => inst or 
             # provide a method in sb for next_inst call
@@ -349,6 +349,7 @@ class SymExecEngine:
                 state.stack.pop()
             elif op == const.opcode.JUMP:
                 # $pc := dst
+                # TODO: check here arbitrary jump
                 addr = state.find_one_solution(state.stack.pop())
                 if addr > self.sb.end_addr or self.sb.instruction_at(addr).opcode != const.opcode.JUMPDEST:# TODO:
                     raise Exception("Invalid jump (0x%x) at pc 0x%x" % (addr, state.pc)) # TODO:
