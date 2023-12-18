@@ -21,6 +21,7 @@ class SymExecEngine:
 
         self.tracer = [] # for debug
         self.fuzz = Fuzzer(con)
+
     # TEMP:
     def add_for_fuzz(self, s: State, var: BV, tries: List[Callable]=[]) -> None:
         '''
@@ -349,7 +350,7 @@ class SymExecEngine:
             elif op == const.opcode.JUMP:
                 # $pc := dst
                 addr = state.find_one_solution(state.stack.pop())
-                if addr >= len(self.sb.instructions) or self.sb.instructions[addr] != const.opcode.JUMPDEST:# TODO:
+                if addr > len(self.sb.end_addr) or self.sb.instructions[addr] != const.opcode.JUMPDEST:# TODO:
                     raise Exception("Invalid jump (0x%x) at pc 0x%x" % (addr, state.pc)) # TODO:
                 state.pc = addr
                 self.add_branch(state)

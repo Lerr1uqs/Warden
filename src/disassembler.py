@@ -26,7 +26,14 @@ class SolidityBinary:
         self.bytecode = unhexlify(self.rtcode)
         # logger.debug("\n" + "\n".join([str(i) for i in self.instructions]))
         # import pdb;pdb.set_trace()
-
+    @property
+    def end_addr(self) -> int:
+        '''
+        find the last instruction's addr
+        '''
+        # TODO: opt here
+        return max([i.address for i in self.instructions])
+        
     def check_pc_jmp_valid(self, pc: int) -> bool:
 
         insts = self.instructions
