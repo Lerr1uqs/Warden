@@ -350,7 +350,7 @@ class SymExecEngine:
                 # $pc := dst
                 addr = state.find_one_solution(state.stack.pop())
                 if addr >= len(self.sb.instructions) or self.sb.instructions[addr] != const.opcode.JUMPDEST:# TODO:
-                    raise Exception("Invalid jump (%i)" % addr) # TODO:
+                    raise Exception("Invalid jump (0x%x) at pc 0x%x" % (addr, state.pc)) # TODO:
                 state.pc = addr
                 self.add_branch(state)
                 return False
