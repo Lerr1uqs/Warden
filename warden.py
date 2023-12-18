@@ -7,9 +7,14 @@ import sys
 
 
 import subprocess as sp
-path = "./store.bin"
+
+from compiler import Compiler
+comp = Compiler("./contracts")
+selfdestruct = comp["SelfDestruct"]
+
+# path = "./store.bin"
 # TODO: pythonpath env var
-sb = SolidityBinary(path)# TODO:
+sb = SolidityBinary(selfdestruct.rtbc)# TODO:
 con = Contract()# TODO: remove sb to contract
 # cfg = CFG(sb.bytecode) # TODO: runtime
 

@@ -1,6 +1,7 @@
 # symbolic execute engine
 from utils import *
 from queue import PriorityQueue, Queue
+from fuzzer import Fuzzer
 import numbers
 import const
 import math
@@ -18,6 +19,7 @@ class SymExecEngine:
         self.add_branch(State(con))# initial state 
 
         self.tracer = [] # for debug
+        self.fuzz = Fuzzer()
     # TEMP:
     def add_for_fuzz(self, s: State, var: BV, tries: List[Callable]=[]) -> None:
         '''
@@ -677,8 +679,14 @@ class SymExecEngine:
                 )
 
             elif op == const.opcode.SELFDESTRUCT:
-                raise NotImplementedError
-                state.selfdestruct_to = state.stack[-1]
+                addr = state.stack.pop()
+                if addr.symbolic:
+                    constraint = addr == ATTACK_ACCOUNT_ADDRESS
+                    if state.solver.satisfiable(extra_constraints=constraint):
+                        # TODO:
+                        state.selfdestruct_to = state.stack[-1] # TODO
+                        print("success")
+                        
                 return True
 
             elif op == const.opcode.REVERT:

@@ -19,7 +19,7 @@ from evm.calldata import Calldata
 '''
 
 
-class Txn:
+class Transaction:
     def __init__(self, caller: int) -> None:
         self.caller: int = caller
         self.value = Web3.toWei(10 ** 6, "ether")# TODO:

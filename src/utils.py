@@ -1,6 +1,6 @@
 # external
 from loguru import logger
-from typing import (Callable, Optional, TypeVar, List, Tuple, Type, Dict, Any, Union, Set, Generic)
+from typing import (Callable, Optional, TypeVar, List, Tuple, Type, Dict, Any, Union, Set, Generic, Sequence)
 import claripy
 import numbers
 from pydantic import BaseModel
@@ -32,3 +32,4 @@ def Sha3(x):# TODO:
 
 DEFAULT_ADDRESS = claripy.BVV(0xffffffffffffffffffffffffff, 256)
 DEFAULT_CALLER = claripy.BVV(0xCAFEBABEFFFFFFFFF0202FFFFFFFFF7CFF7247C9, 256)
+ATTACK_ACCOUNT_ADDRESS = claripy.BVV(0x0d0007210d0007210d0007210d0007210d0007210d0007210d0007210d000721, 256)

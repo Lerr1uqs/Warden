@@ -7,10 +7,12 @@ class SolidityBinary:
 
     code: str = ""
     
-    def __init__(self, filename: str) -> None:
-        with open(filename, 'r') as file:
-            bin = file.read()
-            self.code = bin
+    def __init__(self, bytecode: str) -> None:
+        # with open(filename, 'r') as file:
+            # bin = file.read()
+            # self.code = bin
+
+        self.code = bytecode
 
         # TODO: remove it
         # if bin.startswith("0x"):
@@ -19,9 +21,9 @@ class SolidityBinary:
 
         evmdis = evmdasm.EvmDisassembler()
 
-        self.instructions: List[evmdasm.Instruction] = list(evmdis.disassemble(bin))
-        self.bytecode = unhexlify(bin)
-        logger.debug("\n" + "\n".join([str(i) for i in self.instructions]))
+        self.instructions: List[evmdasm.Instruction] = list(evmdis.disassemble(bytecode))
+        self.bytecode = unhexlify(bytecode)
+        # logger.debug("\n" + "\n".join([str(i) for i in self.instructions]))
         # import pdb;pdb.set_trace()
 
     def check_pc_jmp_valid(self, pc: int) -> bool:
