@@ -1,1 +1,0 @@
-[{"inputs":[],"stateMutability":"payable","type":"constructor"},{"inputs":[{"internalType":"address","name":"addr","type":"address"},{"internalType":"bytes","name":"data","type":"bytes"}],"name":"vuln","outputs":[],"stateMutability":"nonpayable","type":"function"}]
