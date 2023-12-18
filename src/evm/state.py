@@ -1,6 +1,7 @@
 from utils import *
 from .importer import *
 
+import copy
 BV = claripy.ast.BV
 
 STATE_COUNTER = 1
@@ -19,7 +20,18 @@ class State:
         self.solver                   = claripy.Solver()
         self.selfdestruct_to          = None
         self.calls: List[opcode.Call] = []
+
+        # executed pc addr
+        self.exec_addrs = []
     
+    # DEBUG aimed
+    def print_exec_trace(self) -> None:
+        print("---------------------------------------")
+        for addr in self.exec_addrs:
+            inst = self.contract.sb.instruction_at(addr)
+            print(f"{hex(addr)} {inst}")
+        print("---------------------------------------")
+        
     def __repr__(self) -> str:
         return (
             "State(\n"
@@ -90,6 +102,7 @@ class State:
         new_state.calls           = self.calls[:]
         new_state.selfdestruct_to = self.selfdestruct_to
         new_state.depth           = self.depth
+        new_state.exec_addrs      = copy.deepcopy(self.exec_addrs)
 
         global STATE_COUNTER
         STATE_COUNTER += 1

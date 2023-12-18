@@ -90,7 +90,7 @@ class _Msg:
         for (i, ftype) in enumerate(func_types):
 
             if ftype == "address":
-                data32s[i] = ATTACK_ACCOUNT_ADDRESS
+                data32s[i] = claripy.BVS("addr arg", 256)
 
             elif ftype == ["bytes", "array", "string"]:
 
@@ -160,7 +160,8 @@ class Transaction:
 
         self.caller: int        = txn["to"] # TODO: what is to?
         # self.value = Web3.toWei(txn["value"], "ether")# TODO:
-        self.value              = txn["value"] # TODO: symbolize it
+        # self.value              = txn["value"] # TODO: symbolize it
+        self.value              = claripy.BVS("msg.value", 256) # TODO: symbolize it
         self.gas                = txn["gas"]
         self.chainid            = txn["chainId"]
         # self.msgvalue = 10 # TODO: 根据混合符号执行和单纯的符号执行 结果不一样

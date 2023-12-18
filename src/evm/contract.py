@@ -22,6 +22,7 @@ class Contract:
         self.block_number    = 1  #Todo
         self.chainid         = 1  #Todo
         self.artifact = sb.artifact
+        self.sb = sb
 
         self._contract = provider.eth.contract(bytecode=sb.artifact.initbc, abi=json.dumps(sb.artifact.abi))
         # logger.debug(json.dumps(sb.artifact.abi, indent=2))

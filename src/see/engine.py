@@ -6,6 +6,9 @@ import numbers
 import const
 import math
 
+from bugs import Bugs
+from collections import defaultdict
+
 from evm.transaction import Transaction
 
 class SymExecEngine:
@@ -21,6 +24,7 @@ class SymExecEngine:
 
         self.tracer = [] # for debug
         self.fuzz = Fuzzer(con)
+        self.bugs: Dict[Bugs, List[State]] = defaultdict(lambda: []) # TODO: vuln catalogue
     
     # TEMP:
     def add_for_fuzz(self, s: State, var: BV, tries: List[Callable]=[]) -> None:
@@ -85,9 +89,16 @@ class SymExecEngine:
             logger.info("execute at pc: %#x with depth %i." % (state.pc, depth))
 
             success = self.exec_branch(state, txn)
-            if not success:
-                logger.info("execution failed")
 
+            # success means copy a new state and not encounter any terminal instruction TODO:
+            state.print_exec_trace()
+            if not success:
+                pass
+                # logger.info("execution failed")
+
+        for bug in Bugs:
+            if len(self.bugs[bug]) > 0:
+                logger.critical(f"found {bug}")
             
     def exec_branch(self, state: State, txn: Transaction) -> bool:
         """Execute forward from a state, queuing new states if needed."""
@@ -96,6 +107,8 @@ class SymExecEngine:
         while True:
             if state.pc > self.sb.end_addr:
                 return True
+            
+            state.exec_addrs.append(state.pc)
             # need to setup a map in pc => inst or 
             # provide a method in sb for next_inst call
             curinst = self.sb.pc2inst(state.pc)
@@ -108,7 +121,7 @@ class SymExecEngine:
 
             logger.debug("------- NEW STEP -------")
             # logger.debug("Memory: %s" % state.memory)
-            logger.debug("\nStack: %s" % state.stack)
+            # logger.debug("\nStack: %s" % state.stack)
             logger.debug("PC: %#x, op: %#x(%s)" % (state.pc, op, curinst.name))
 
             assert isinstance(op, numbers.Number)
@@ -324,7 +337,8 @@ class SymExecEngine:
             elif op == const.opcode.CALLVALUE:
                 # raise NotImplementedError
                 # TODO: 没有fallback函数 如果有msg.value会导致revert
-                state.stack.push(claripy.BVS(f"CALLVALUE[{state.pc}]", 256))# TODO: use Txn or Contract
+                # state.stack.push(claripy.BVS(f"CALLVALUE[{state.pc}]", 256))# TODO: use Txn or Contract
+                state.stack.push(txn.value)
             elif op == const.opcode.BLOCKHASH:
                 raise NotImplementedError
                 block_num = state.stack.pop()
@@ -357,18 +371,41 @@ class SymExecEngine:
                 self.add_branch(state)
                 return False
             elif op == const.opcode.JUMPI:
-                addr, condition = state.find_one_solution(state.stack.pop()), state.stack.pop()
-                # TODO: if symbolic?
-                state_false = state.clone()
-                state.solver.add(condition != BVV0)
-                state_false.solver.add(condition == BVV0)
-                state_false.pc += 1
-                self.add_branch(state_false)
-                state.pc = addr
-                if not self.sb.check_pc_jmp_valid(state.pc):
-                    raise Exception("Invalid jump (%i)" % (state.pc - 1)) # TODO:
-                self.add_branch(state)
-                return False
+
+                addr, cond = state.stack.pop(),  state.stack.pop()
+                
+                if addr.symbolic:
+                    raise NotImplementedError("arbitrary jump")
+
+                elif cond.symbolic:
+                    
+                    state_false = state.clone()
+                    state_false.solver.add(cond == BVV0)# 为0的时候没法跳转
+                    state_false.pc += 1
+                    
+                    self.add_branch(state_false)
+                    
+                    state.solver.add(cond != BVV0)
+                    state.pc = addr.concrete_value
+                    if not self.sb.check_pc_jmp_valid(state.pc):
+                        raise Exception("Invalid jump (0x%x)" % (state.pc - 1)) # TODO:
+
+                    self.add_branch(state)
+
+                    return True
+                
+                else:# addr and cond neither symbolic
+                    if cond.concrete_value == 0:
+                        # continue to execute to next instruction
+                        pass
+
+                    elif cond.concrete_value == 1:
+                        # subsequent state.pc += 1
+                        state.pc = addr.concrete_value - 1
+                        
+                    else:
+                        raise RuntimeError("unreachable")
+
             elif op == const.opcode.PUSH0:
                 '''
                 This is because solidity 0.8.20 introduces the PUSHO(Ox5f) opcode 
@@ -376,19 +413,19 @@ class SymExecEngine:
                 That's why other chains can't find the PUSHO(0x5f) opcode and throw this error.
                 '''
                 state.stack_push(BVV0)
+
             elif const.opcode.PUSH1 <= op <= const.opcode.PUSH32:
                 '''
                 PUSH1 60
                 PUSH2 4070
                 '''
                 pushnum = op - const.opcode.PUSH1 + 1
-                # self.code.program_counter = state.pc + 1
-                pc = state.pc
-                raw: bytes = self.sb.bytecode[pc+1:pc+1+pushnum]
                 state.pc += pushnum
+
                 state.stack.push(
-                    bvv(int.from_bytes(raw, byteorder="big"))
+                    claripy.BVV(int(curinst.operand, 16), 256)
                 )
+
             elif const.opcode.DUP1 <= op <= const.opcode.DUP16:
                 # clone ith value on stack
                 depth = op - const.opcode.DUP1 + 1
@@ -404,6 +441,7 @@ class SymExecEngine:
                 '''
                 永久记录一个函数签名+参数在区块链上
                 '''
+                raise NotImplementedError
                 # TODO: 这个应该不需要模拟
                 # LOG0(memory[ost:ost+len-1])
                 # LOG1(memory[ost:ost+len-1], topic0, topic1)
@@ -714,18 +752,30 @@ class SymExecEngine:
                 )
 
             elif op == const.opcode.SELFDESTRUCT:
+                
                 addr = state.stack.pop()
-                logger.debug(addr)
+                logger.critical(addr)
+                
                 if addr.symbolic:
-                    constraint = addr == ATTACK_ACCOUNT_ADDRESS
+                    constraint = [addr == ATTACK_ACCOUNT_ADDRESS]
+
                     if state.solver.satisfiable(extra_constraints=constraint):
                         # TODO:
+                        import copy
+                        self.bugs[Bugs.SELFDESTRUCT].append(
+                            copy.deepcopy(state)
+                        )
                         state.selfdestruct_to = state.stack[-1] # TODO
-                        logger.info("selfdestruct detect successfully")
+                        logger.critical("selfdestruct detect successfully")
+
+                    else:
+                        import pdb; pdb.set_trace()
                         
                 return True
 
             elif op == const.opcode.REVERT:
+                # if state.pc == 0xd:
+                    # import pdb; pdb.set_trace()
                 # raise NotImplementedError
                 return False
 

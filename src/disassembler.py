@@ -49,7 +49,8 @@ class SolidityBinary:
         insts = self.instructions
         jumpdest = const.opcode.JUMPDEST
         
-        return pc < len(insts) and self.pc2inst(pc).opcode == jumpdest
+        # TODO: pc2inst repeat with instruction_at
+        return pc <= self.end_addr and self.pc2inst(pc).opcode == jumpdest
 
     # TODO: opt here
     def pc2inst(self, pc: int) -> evmdasm.Instruction:
