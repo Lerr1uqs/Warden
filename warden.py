@@ -14,8 +14,8 @@ selfdestruct = comp["SelfDestruct"]
 
 # path = "./store.bin"
 # TODO: pythonpath env var
-sb = SolidityBinary(selfdestruct.rtbc)# TODO:
-con = Contract()# TODO: remove sb to contract
+sb = SolidityBinary(selfdestruct)# TODO:
+con = Contract(sb)# TODO: remove sb to contract
 # cfg = CFG(sb.bytecode) # TODO: runtime
 
 

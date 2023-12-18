@@ -13,6 +13,7 @@ from utils import *
 
 from collections import defaultdict
 import json
+from web3 import Web3
 
 class Artifact:
     def __init__(self, rtbc: str, initbc: str, json_obj: List[Dict]) -> None:
@@ -54,18 +55,58 @@ class Artifact:
         ]
         '''
 
+        # not contain constructor
         self.funcs: Dict[str, Dict] = {}
+        
+        # not contain constructor
         self.funcnames: List[str] = []
+
+        # not contain constructor
+        self.signatures: Dict[str, int] = {} # func name -> signature
+
+        # contain constructor
+        self.func_input_types: Dict[str, List] = defaultdict(lambda: [])
 
         for func in json_obj:
 
             if func["type"] == "constructor":
+
                 self.constructor: Dict = func
+                
+                function_input_types = []
+                for i in range(len(func['inputs'])):
+                    input_type = func['inputs'][i]['type']
+                    function_input_types.append(input_type)
+
+                self.func_input_types["constructor"] = function_input_types
+                
             elif func["type"] in ["fallback", "receive"]:
                 # TODO: 暂时不纳入考虑
                 pass
             else:
-                self.funcs[func["name"]] = func
+                assert func["type"] == "function"
+
+                fname = func['name']
+                function_input_types = []
+                signature = fname + '('
+
+                for i in range(len(func['inputs'])):
+
+                    input_type: str = func['inputs'][i]['type']
+                    function_input_types.append(input_type)
+                    signature += input_type
+                    
+                    if i < len(func['inputs']) - 1:
+                        signature += ','
+                        
+                signature += ')'
+
+                hash = Web3.keccak(text=signature)[0:4].hex()
+
+                self.funcnames.append(fname)
+                self.signatures[fname] = hash
+                self.funcs[fname] = func
+                self.func_input_types[fname] = function_input_types
 
 class Compiler:
 
@@ -100,6 +141,7 @@ class Compiler:
             folder_name = file.split('.')[0]
             folder_path = os.path.join(con_path, folder_name)
 
+            # TODO:
             if os.path.exists(folder_path):
                 shutil.rmtree(folder_path)
 

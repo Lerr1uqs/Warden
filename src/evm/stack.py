@@ -2,14 +2,29 @@ from utils import *
 import copy
 
 BV = claripy.ast.BV
-T = TypeVar("T")
+bvv = lambda v : claripy.BVV(v, 256)
+# T = TypeVar("T")
 
-class Stack(Generic[T]):
-    stack: List[T] = []
+from numbers import Number, Integral # TODO: move to other
+
+class Stack:
     def __init__(self) -> None:
         # self.stack: List[T] = []
-        ...
+        self.stack: List[BV] = []
 
+    def __getitem__(self, idx: int) -> BV:
+        
+        assert isinstance(idx, int)
+        
+        return self.stack[idx]
+
+    def __setitem__(self, idx: int, val: BV) -> None:
+
+        assert isinstance(idx, int)
+        assert isinstance(val, BV)
+
+        self.stack[idx] = val
+        
     def __repr__(self) -> str:
         s = [""]
         end = len(self.stack) - 1
@@ -25,7 +40,7 @@ class Stack(Generic[T]):
         return "\n".join(s)
 
 
-    def pop(self, n=1) -> Union[T, List[T]]:
+    def pop(self, n=1) -> Union[BV, List[BV]]:
         '''
         返回一个栈顶到栈底的pop列表
         '''
@@ -37,7 +52,14 @@ class Stack(Generic[T]):
         ret = [self.stack.pop() for _ in range(n)] 
         return ret
     
-    def push(self, e: T) -> None:
+    def push(self, e: Union[BV, Integral]) -> None:
+        if isinstance(e, BV):
+            pass
+        elif isinstance(e, Integral):
+            e = bvv(e)
+        else:
+            raise TypeError(f"push type: {type(e)}")
+
         self.stack.append(e)
     
     def clone(self):

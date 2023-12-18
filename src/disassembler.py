@@ -2,17 +2,18 @@ from utils import *
 import const
 import evmdasm
 from binascii import (hexlify, unhexlify)
+from compiler import Artifact
 
 class SolidityBinary:
 
-    code: str = ""
+    rtcode: str = ""
     
-    def __init__(self, bytecode: str) -> None:
+    def __init__(self, artifact: Artifact) -> None:
         # with open(filename, 'r') as file:
             # bin = file.read()
             # self.code = bin
-
-        self.code = bytecode
+        self.artifact = artifact
+        self.rtcode = artifact.rtbc # TEMP: 
 
         # TODO: remove it
         # if bin.startswith("0x"):
@@ -21,8 +22,8 @@ class SolidityBinary:
 
         evmdis = evmdasm.EvmDisassembler()
 
-        self.instructions: List[evmdasm.Instruction] = list(evmdis.disassemble(bytecode))
-        self.bytecode = unhexlify(bytecode)
+        self.instructions: List[evmdasm.Instruction] = list(evmdis.disassemble(self.rtcode))
+        self.bytecode = unhexlify(self.rtcode)
         # logger.debug("\n" + "\n".join([str(i) for i in self.instructions]))
         # import pdb;pdb.set_trace()
 
