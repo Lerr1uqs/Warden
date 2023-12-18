@@ -94,7 +94,7 @@ class SymExecEngine:
         logger.debug("Constraints: %s" % state.solver.constraints)
 
         while True:
-            if state.pc >= len(self.sb.end_addr):
+            if state.pc >= self.sb.end_addr:
                 return True
             # need to setup a map in pc => inst or 
             # provide a method in sb for next_inst call
