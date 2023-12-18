@@ -26,6 +26,16 @@ class SolidityBinary:
         self.bytecode = unhexlify(self.rtcode)
         # logger.debug("\n" + "\n".join([str(i) for i in self.instructions]))
         # import pdb;pdb.set_trace()
+    
+    # TODO: move all evmdasm.Instruction as new class
+    def instruction_at(self, addr: int) -> evmdasm.Instruction:
+        # TODO: opt here
+        for i in self.instructions:
+            if i.address == addr:
+                return i
+            
+        raise NotImplementedError("unreachable")
+        
     @property
     def end_addr(self) -> int:
         '''
