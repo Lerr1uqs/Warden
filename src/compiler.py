@@ -12,15 +12,61 @@ from binascii import unhexlify
 from utils import *
 
 from collections import defaultdict
+import json
 
-class Bytecode:
-    def __init__(self) -> None:
-        self.rtbc = ""
-        self.initbc = ""
+class Artifact:
+    def __init__(self, rtbc: str, initbc: str, json_obj: List[Dict]) -> None:
+        self.rtbc = rtbc
+        self.initbc = initbc
+        self.abi = json_obj
+        '''
+        [
+            {
+                'inputs': [], 
+                'stateMutability': 'payable', 
+                'type': 'constructor'
+            }, 
+            {
+                'inputs': [
+                    {
+                        'internalType': 'address', 
+                        'name': 'addr', 
+                        'type': 'address'
+                    }, 
+                    {
+                        'internalType': 'bytes', 
+                        'name': 'data', 
+                        'type': 'bytes'
+                    }
+                ], 
+                'name': 'Func', 
+                'outputs': [], 
+                'stateMutability': 'nonpayable', 
+                'type': 'function'
+            }, 
+            {
+                'inputs': [], 
+                'name': 'withdraw', 
+                'outputs': [], 
+                'stateMutability': 'nonpayable', 
+                'type': 'function'
+            }
+        ]
+        '''
+
+        self.funcs: Dict[str, Dict] = {}
+        self.funcnames: List[str] = []
+
+        for func in json_obj:
+
+            if func["type"] == "constructor":
+                self.constructor: Dict = func
+            else:
+                self.funcs[func["name"]] = func
 
 class Compiler:
 
-    def __getitem__(self, conname: str) -> Bytecode:
+    def __getitem__(self, conname: str) -> Artifact:
         '''
         conname: contract name
         '''
@@ -43,7 +89,7 @@ class Compiler:
             if os.path.isfile(os.path.join(con_path, f)) and f.endswith('.sol')
         ]
 
-        self.bytecodes: Dict[str, Bytecode] = defaultdict(lambda: Bytecode()) # contract name -> Bytecode
+        self.bytecodes: Dict[str, Artifact] = defaultdict(lambda: Artifact()) # contract name -> Bytecode
 
         for file in sol_files:
             # 创建文件夹，如果已存在则删除
@@ -93,6 +139,12 @@ class Compiler:
                 if output_filename.endswith(".bin-runtime"):
                     with open(fpath, "r") as f:
                         self.bytecodes[contract_name].rtbc = f.read()
+
+                if output_filename.endswith(".abi"):
+                    with open(fpath, "r") as f:
+                        self.bytecodes[contract_name].abi = json.load(f)
+                        # s = json.dumps(self.bytecodes[contract_name].abi, indent=2)
+                        # print(s)
 
                 if output_filename in output_filenames:
                     raise RuntimeError(f"contract {output_filename} appear many times")
