@@ -61,6 +61,9 @@ class Artifact:
 
             if func["type"] == "constructor":
                 self.constructor: Dict = func
+            elif func["type"] in ["fallback", "receive"]:
+                # TODO: 暂时不纳入考虑
+                pass
             else:
                 self.funcs[func["name"]] = func
 
@@ -70,7 +73,7 @@ class Compiler:
         '''
         conname: contract name
         '''
-        return self.bytecodes[conname]
+        return self.artifacts[conname]
 
 
     def __init__(self, contracts_path: Union[Path, str]) -> None:
@@ -89,7 +92,8 @@ class Compiler:
             if os.path.isfile(os.path.join(con_path, f)) and f.endswith('.sol')
         ]
 
-        self.bytecodes: Dict[str, Artifact] = defaultdict(lambda: Artifact()) # contract name -> Bytecode
+        # self.artifacts: Dict[str, Artifact] = defaultdict(lambda: Artifact()) # contract name -> Bytecode
+        self.artifacts: Dict[str, Artifact] = {} # contract name -> Bytecode
 
         for file in sol_files:
             # 创建文件夹，如果已存在则删除
@@ -122,7 +126,8 @@ class Compiler:
                 folder_path
             ])
 
-            output_filenames = set() # prevent same-name contract
+            cnwps = set() # skip processed artifact files
+            contract_names = set() # prevent same-name contract
 
             # 遍历每个sol文件产生的文件夹里面的文件
             for fpath in Path(folder_path).rglob("*"):
@@ -131,25 +136,30 @@ class Compiler:
                 output_filename = os.path.basename(fpath) # e.g. ArbitraryJump.bin
 
                 contract_name = output_filename.split('.')[0] # e.g. ArbitraryJump
+
+                # contract name with path but not suffix
+                # cnwp only appear
+                cnwp = Path(fpath).absolute().__str__().split('.')[0] # e.g. /xxx/contracts/delegatecall/Attack
+
+                if cnwp in cnwps:
+                    continue
                 
-                if output_filename.endswith(".bin"):
-                    with open(fpath, "r") as f:
-                        self.bytecodes[contract_name].initbc = f.read()
+                with open(cnwp + ".bin", "r") as f:
+                    initbc = f.read()
                         
-                if output_filename.endswith(".bin-runtime"):
-                    with open(fpath, "r") as f:
-                        self.bytecodes[contract_name].rtbc = f.read()
+                with open(cnwp + ".bin-runtime", "r") as f:
+                    rtbc = f.read()
 
-                if output_filename.endswith(".abi"):
-                    with open(fpath, "r") as f:
-                        self.bytecodes[contract_name].abi = json.load(f)
-                        # s = json.dumps(self.bytecodes[contract_name].abi, indent=2)
-                        # print(s)
-
-                if output_filename in output_filenames:
-                    raise RuntimeError(f"contract {output_filename} appear many times")
+                with open(cnwp + ".abi", "r") as f:
+                    abi = json.load(f)
                 
-                output_filenames.add(output_filename)
+                if contract_name in contract_names:
+                    raise RuntimeError(f"contract {output_filename} appear many times")
+
+                self.artifacts[contract_name] = Artifact(rtbc, initbc, abi)
+                
+                cnwps.add(cnwp)
+                    
                 # NOTE: opcodes file?
                         
         
