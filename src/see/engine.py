@@ -87,7 +87,7 @@ class SymExecEngine:
 
         assert not self.branch_queue.empty()
 
-        txn = self.fuzz.build_one_txn("middle_vuln") # TODO:
+        txn = self.fuzz.build_one_txn("vuln") # TODO:
         
         # wind thread
         wt = Thread(
@@ -108,6 +108,11 @@ class SymExecEngine:
             depth, state = self.branch_queue.get()
 
             state.depth += 1
+            
+            # TODO: temporary avoid circular traverse
+            if state.pc == 0:
+                logger.warning("circular detected")
+                continue
 
             # logger.info("execute at pc: %#x with depth %i." % (state.pc, depth))
 
