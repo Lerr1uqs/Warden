@@ -7,7 +7,7 @@ import const
 import math
 import pdb
 
-from bugs import Bugs
+from vulns import VulnTypes
 from collections import defaultdict
 
 from evm.state import State
@@ -28,7 +28,7 @@ class SymExecEngine:
 
         self.tracer = [] # for debug
         self.fuzz = Fuzzer(con)
-        self.bugs: Dict[Bugs, List[State]] = defaultdict(lambda: []) # TODO: vuln catalogue
+        self.bugs: Dict[VulnTypes, List[State]] = defaultdict(lambda: []) # TODO: vuln catalogue
     
     # TEMP:
     def add_for_fuzz(self, s: State, var: BV, tries: List[Callable]=[]) -> None:
@@ -101,7 +101,7 @@ class SymExecEngine:
                 pass
                 # logger.info("execution failed")
 
-        for bug in Bugs:
+        for bug in VulnTypes:
             if len(self.bugs[bug]) > 0:
                 logger.critical(f"found {bug}")
             
@@ -791,7 +791,7 @@ class SymExecEngine:
                     if state.solver.satisfiable(extra_constraints=constraint):
                         # TODO:
                         import copy
-                        self.bugs[Bugs.SELFDESTRUCT].append(
+                        self.bugs[VulnTypes.SELFDESTRUCT].append(
                             copy.deepcopy(state)
                         )
                         state.selfdestruct_to = state.stack[-1] # TODO

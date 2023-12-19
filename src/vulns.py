@@ -1,5 +1,5 @@
 from enum import Enum
 
-class Bugs(Enum):
+class VulnTypes(Enum):
     SELFDESTRUCT = 1
 
