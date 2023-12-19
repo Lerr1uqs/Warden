@@ -8,6 +8,10 @@ import sys
 
 import subprocess as sp
 
+from loguru import logger
+logger.remove()
+logger.add(sys.stdout, level="INFO")
+
 from compiler import Compiler
 comp = Compiler("./contracts")
 selfdestruct = comp["SelfDestruct"]

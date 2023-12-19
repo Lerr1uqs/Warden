@@ -33,22 +33,24 @@ class StateWindow:
         try:
             self._show_terminal(observer)
         except KeyboardInterrupt:
-            import sys
-            sys.exit(0)
+            return
     
     def _show_terminal(self, observer: Observer) -> None:
 
         while True:
-
+            
+            import os
+            os.system("clear")
+            
             # REF: https://coolsymbol.com/  https://www.alt-codes.net/
             print(
-                f'{colored("processing time", "blue")}━━━━━━━━━━━━━━━━━━━━━━━━━━━┓'
-                f'┃       create time : {self.create_time:25s}                        ┃'
-                f'┃     last new path : {self.last_new_path_found:25s}                  ┃'
-                f'┃     last new vuln : {self.last_vuln_found:25s}                  ┃'
-                f'┃total states count : {self.total_state_count:>20}                  ┃'
-                f'┃     coverage rate : {self.coverage_rate:>20}                  ┃'
-                f'┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛'
+                f'{colored("processing time", "blue")}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓\n'
+                f'┃       create time : {self.create_time:25s}              ┃\n'
+                f'┃     last new path : {self.last_new_path_found:25s}              ┃\n'
+                f'┃     last new vuln : {self.last_vuln_found:25s}              ┃\n'
+                f'┃total states count : {self.total_state_count:>20}                   ┃\n'
+                f'┃     coverage rate : {self.coverage_rate:>20}                   ┃\n'
+                f'┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛\n'
             )
 
             time.sleep(0.5)

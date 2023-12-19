@@ -89,7 +89,10 @@ class SymExecEngine:
         txn = self.fuzz.build_one_txn("middle_vuln") # TODO:
         
         # wind thread
-        wt = Thread(target=StateWindow().show_terminal(), args=(self.observer))
+        wt = Thread(
+            target=StateWindow().show_terminal(self.observer), 
+            args=(self.observer)
+        )
         wt.start()
 
         while not self.branch_queue.empty():
