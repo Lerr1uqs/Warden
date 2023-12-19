@@ -148,6 +148,8 @@ class SymExecEngine:
                 isinstance(i, claripy.ast.base.BV) for i in state.stack
             ), "The stack musty only contains claripy BV's"
 
+            self.observer.hit_at(state.pc)
+
             bps = []
             for bp in bps:
                 if state.pc == bp:
@@ -803,10 +805,8 @@ class SymExecEngine:
                     constraint = [addr == ATTACK_ACCOUNT_ADDRESS]
 
                     if state.solver.satisfiable(extra_constraints=constraint):
-                        # TODO:
-                        import copy
-                        self.bugs[VulnTypes.SELFDESTRUCT].append(
-                            copy.deepcopy(state)
+                        self.observer.add_a_vuln(
+                            VulnTypes.SELFDESTRUCT, state
                         )
                         state.selfdestruct_to = state.stack[-1] # TODO
                         logger.critical("selfdestruct detect successfully")

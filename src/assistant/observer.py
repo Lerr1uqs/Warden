@@ -84,7 +84,7 @@ class Observer:
                 
         return hit_count / self._total_cov_count
 
-    def add_a_bug(self, vuln: VulnTypes, state: State) -> None:
+    def add_a_vuln(self, vuln: VulnTypes, state: State) -> None:
 
         assert isinstance(vuln, VulnTypes)
         
