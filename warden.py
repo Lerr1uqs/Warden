@@ -10,15 +10,16 @@ import subprocess as sp
 
 from loguru import logger
 logger.remove()
-logger.add(sys.stdout, level="INFO")
+# logger.add(sys.stdout, level="INFO")
+logger.add("loguru.log")
 
 from compiler import Compiler
 comp = Compiler("./contracts")
-selfdestruct = comp["SelfDestruct"]
+allvulns = comp["All"]
 
 # path = "./store.bin"
 # TODO: pythonpath env var
-sb = SolidityBinary(selfdestruct)# TODO:
+sb = SolidityBinary(allvulns)# TODO:
 con = Contract(sb)# TODO: remove sb to contract
 # cfg = CFG(sb.bytecode) # TODO: runtime
 
@@ -26,10 +27,10 @@ con = Contract(sb)# TODO: remove sb to contract
 see = SymExecEngine(sb, con)
 try:
     see.execute()
-    print("\n".join(see.tracer))
+    # print("\n".join(see.tracer))
 except Exception as e:
-    print("\n".join(see.tracer))
+    # print("\n".join(see.tracer))
     raise e
     
-from evm.state import STATE_COUNTER
-print(f"state counter = {STATE_COUNTER}")
+# from evm.state import STATE_COUNTER
+# print(f"state counter = {STATE_COUNTER}")

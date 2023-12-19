@@ -40,6 +40,7 @@ class SymExecEngine:
         '''
         fuzz a var and generate corresponding state for this variable
         '''
+        logger.critical("add_for_fuzz")
         # TODO: sketchy fuzz strategy
         to_try = set()
         nb_random = 0
@@ -90,25 +91,30 @@ class SymExecEngine:
         
         # wind thread
         wt = Thread(
-            target=StateWindow().show_terminal(self.observer), 
-            args=(self.observer)
+            target=StateWindow().show_terminal, 
+            args=(self.observer,)
         )
         wt.start()
 
         while not self.branch_queue.empty():
             # NOTE: qsize only work in single-thread environment
+            from evm.state import STATE_COUNTER #TODO： 记录
             logger.debug(f"self.branch_queue len is {self.branch_queue.qsize()}")
+            logger.debug(f"total states cound is is {STATE_COUNTER}")
+            self.observer.cur_state_count = self.branch_queue.qsize()
+            self.observer.total_state_count = STATE_COUNTER
+
             depth: int; state: State
             depth, state = self.branch_queue.get()
 
             state.depth += 1
 
-            logger.info("execute at pc: %#x with depth %i." % (state.pc, depth))
+            # logger.info("execute at pc: %#x with depth %i." % (state.pc, depth))
 
             success = self.exec_branch(state, txn)
 
             # success means copy a new state and not encounter any terminal instruction TODO:
-            state.print_exec_trace()
+            # state.print_exec_trace()
             if not success:
                 pass
                 # logger.info("execution failed")
@@ -117,6 +123,7 @@ class SymExecEngine:
             if len(self.bugs[bug]) > 0:
                 logger.critical(f"found {bug}")
 
+        self.observer.notify_statewindow_shutdown = True
         wt.join()
             
     def exec_branch(self, state: State, txn: Transaction) -> bool:
@@ -597,6 +604,7 @@ class SymExecEngine:
                 )
 
             elif op == const.opcode.CODECOPY:
+                raise NotImplementedError
                 # dstOst, ost, len
                 # mem[dstOst:dstOst+len-1] := this.code[ost:ost+len-1]
                 fos: Callable = state.find_one_solution
@@ -735,42 +743,38 @@ class SymExecEngine:
                 calling address(this) should return the calling contract’s address.
 
                 其实就是this是调用合约
+
+                DELEGATECALL
+                 pop : gas, addr, argOst(参数在内存中的位置), argLen(字节单位), retOst, retLen
+                  op : mem[retOst:retOst+retLen-1] := returndata
+                push : success
                 '''
                 state.pc += 1
 
-                # pylint:disable=unused-variable
-                gas, to_, meminstart, meminsz, memoutstart, memoutsz = (
+                gas, addr, argost, arglen, retost, retlen = (
                     state.stack.pop() for _ in range(6)
                 )
 
-                # First possibility: the call fails
-                # (always possible with a call stack big enough)
-                state_fail = state.clone()
-                state_fail.stack.push(BVV0)
-                self.add_branch(state_fail)
+                assert argost.concrete and arglen.concrete
 
-                # If the call is to a specific contract we don't control,
-                # don't assume it could return anything, or even be successful.
-                # So we say we need to be able to call an arbitrary contract.
-                state.solver.add(to_[159:0] == utils.DEFAULT_CALLER[159:0])# TODO:
-
-                # Second possibility: success.
-                state.calls.append(
-                    (memoutsz, memoutstart, meminsz, meminstart, to_, gas)
-                )
-
-                memoutsz = state.find_one_solution(memoutsz)
-                if memoutsz != 0:
-                    memoutstart = state.find_one_solution(memoutstart)
-                    state.memory.write(# TODO:
-                        memoutstart,
-                        memoutsz,
-                        claripy.BVS("DELEGATECALL_RETURN[%s]" % to_, memoutsz * 8),
-                    )
-
+                # data = state.memory.read(argost.concrete, arglen.concrete * 8)
+                # NOTE: 无论data为什么 理论上都能进行攻击
+                if addr.symbolic:
+                    if state.solver.satisfiable(extra_constraints=[addr==ATTACK_ACCOUNT_ADDRESS]):
+                        self.observer.add_a_vuln(
+                            VulnTypes.DELEGATECALL,
+                            state
+                        )
+                        return
+                    else:
+                        raise RuntimeError("symbolic but not satisfiable?")
+                
+                # NOTE: assume delegatecall must success but not write the memory
                 state.stack.push(BVV1)
-                self.add_branch(state)
-                return False
+
+                state.calls.append(
+                    (gas, addr, argost, arglen, retost, retlen)
+                )
 
             elif op == const.opcode.RETURNDATASIZE:# TODO:
                 # ref: https://eips.ethereum.org/EIPS/eip-211
@@ -812,7 +816,7 @@ class SymExecEngine:
                         logger.critical("selfdestruct detect successfully")
 
                     else:
-                        import pdb; pdb.set_trace()
+                        raise NotImplementedError
                         
                 return True
 

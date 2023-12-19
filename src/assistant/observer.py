@@ -15,6 +15,7 @@ class Observer:
         self._vulns: Dict[VulnTypes, List[State]] = defaultdict(lambda: []) # TODO: vuln catalogue
         self._total_cov_count = len(all_instructions)
         self._coverage = {}
+        self.notify_statewindow_shutdown = False
 
         for i in all_instructions:
             self._coverage[i.address] = 0
@@ -35,11 +36,21 @@ class Observer:
 
     @property
     def total_state_count(self) -> int:
-        return self._total_cov_count
+        return self._total_state_count
     
     @total_state_count.setter
     def total_state_count(self, count: int) -> None:
-        self._total_cov_count = count
+        self._total_state_count = count
+
+    _cur_state_count = 0
+
+    @property
+    def cur_state_count(self) -> int:
+        return self._cur_state_count
+    
+    @cur_state_count.setter
+    def cur_state_count(self, count: int) -> None:
+        self._cur_state_count = count
     
     new_path_found = False
 

@@ -98,10 +98,13 @@ class Memory(BaseModel):
         self._mem[addr] = val
 
     
+    # TODO: change it to byte width
     def read(self, addr: int, bits_size: int) -> Union[CONCRETE, BV]:# TODO: type
         '''
         size: bits-width
         '''
+        assert isinstance(addr, int)
+        assert isinstance(bits_size, int)
         assert addr % 2 == 0
         assert self._mem.get(addr) is not None # NOTE: 应该没有人从未初始化的内存中读东西吧？
 

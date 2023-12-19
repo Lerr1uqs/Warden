@@ -2,3 +2,4 @@
 
 contracts/*
 !contracts/*.sol
+loguru.log
