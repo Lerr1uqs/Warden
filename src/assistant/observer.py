@@ -18,6 +18,18 @@ class Observer:
 
         for i in all_instructions:
             self._coverage[i.address] = 0
+
+    def vuln_count(self, v: VulnTypes) -> int:
+        return len(self._vulns[v])
+    
+    @property
+    def total_vulns_count(self) -> int:
+        count = 0
+        
+        for k, v in self._vulns.items():
+            count += len(v)
+            
+        return count
     
     _total_state_count = 0
 
