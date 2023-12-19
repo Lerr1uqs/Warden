@@ -14,6 +14,10 @@ from evm.state import State
 from disassembler import SolidityBinary
 from evm.contract import Contract
 from evm.transaction import Transaction
+from assistant.observer import Observer
+from assistant.statewindow import StateWindow
+from threading import Thread
+
 
 class SymExecEngine:
     def __init__(self, sb: SolidityBinary, con: Contract) -> None:
@@ -29,6 +33,7 @@ class SymExecEngine:
         self.tracer = [] # for debug
         self.fuzz = Fuzzer(con)
         self.bugs: Dict[VulnTypes, List[State]] = defaultdict(lambda: []) # TODO: vuln catalogue
+        self.observer = Observer(sb.instructions)
     
     # TEMP:
     def add_for_fuzz(self, s: State, var: BV, tries: List[Callable]=[]) -> None:
@@ -83,6 +88,10 @@ class SymExecEngine:
 
         txn = self.fuzz.build_one_txn("middle_vuln") # TODO:
         
+        # wind thread
+        wt = Thread(target=StateWindow().show_terminal(), args=(self.observer))
+        wt.start()
+
         while not self.branch_queue.empty():
             # NOTE: qsize only work in single-thread environment
             logger.debug(f"self.branch_queue len is {self.branch_queue.qsize()}")
@@ -104,6 +113,8 @@ class SymExecEngine:
         for bug in VulnTypes:
             if len(self.bugs[bug]) > 0:
                 logger.critical(f"found {bug}")
+
+        wt.join()
             
     def exec_branch(self, state: State, txn: Transaction) -> bool:
         """Execute forward from a state, queuing new states if needed."""

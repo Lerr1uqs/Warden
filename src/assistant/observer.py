@@ -12,13 +12,23 @@ from copy import deepcopy
 class Observer:
     # opt it with cfg coverage
     def __init__(self, all_instructions: List[Instruction]) -> None:
-        self.vulns: Dict[VulnTypes, List[State]] = defaultdict(lambda: []) # TODO: vuln catalogue
+        self._vulns: Dict[VulnTypes, List[State]] = defaultdict(lambda: []) # TODO: vuln catalogue
         self._total_cov_count = len(all_instructions)
         self._coverage = {}
 
         for i in all_instructions:
             self._coverage[i.address] = 0
-        
+    
+    _total_state_count = 0
+
+    @property
+    def total_state_count(self) -> int:
+        return self._total_cov_count
+    
+    @total_state_count.setter
+    def total_state_count(self, count: int) -> None:
+        self._total_cov_count = count
+    
     new_path_found = False
 
     def hit_at(self, addr: int) -> None:
@@ -39,8 +49,18 @@ class Observer:
             return True
         
         return False
-            
 
+    new_vuln_found = False
+
+    @property
+    def has_new_vuln_found(self) -> bool:
+        # refresh new path found every queries 
+        if self.new_vuln_found:
+            self.new_vuln_found = False
+            return True
+        
+        return False
+    
     @property
     def coverage_rate(self) -> float:
 
@@ -56,6 +76,8 @@ class Observer:
 
         assert isinstance(vuln, VulnTypes)
         
-        self.vulns[vuln].append(
+        self.new_vuln_found = True # update for query
+
+        self._vulns[vuln].append(
             deepcopy(state)
         )
