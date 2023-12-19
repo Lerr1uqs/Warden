@@ -9,6 +9,9 @@ import math
 from bugs import Bugs
 from collections import defaultdict
 
+from evm.state import State
+from disassembler import SolidityBinary
+from evm.contract import Contract
 from evm.transaction import Transaction
 
 class SymExecEngine:
@@ -76,7 +79,7 @@ class SymExecEngine:
 
         assert not self.branch_queue.empty()
 
-        txn = self.fuzz.build_one_txn("vuln") # TODO:
+        txn = self.fuzz.build_one_txn("middle_vuln") # TODO:
         
         while not self.branch_queue.empty():
             # NOTE: qsize only work in single-thread environment
@@ -160,8 +163,11 @@ class SymExecEngine:
                 [s0, s1] = state.stack.pop(2) # s0 / s1
                 try:
                     s1 = state.find_one_solution(s1)  # pylint:disable=invalid-name 获得一个具体值
-                except MultipleSolutionsError:
-                    state.stack.push(claripy.If(s1 == 0, BVV0, s0 / s1))# 这里是不是可以抛出一个div zero 异常
+                except SymbolicMultiSolutions:
+                    # 有多个解 s1 是symbolic的
+                    state.solver.add(s1 != 0)
+                    state.stack.push(s0 / s1)
+                    # state.stack.push(claripy.If(s1 == 0, BVV0, s0 / s1))# 这里是不是可以抛出一个div zero 异常
                 else:
                     if s1 == 0:
                         state.stack.push(BVV0)

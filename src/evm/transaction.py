@@ -102,7 +102,8 @@ class _Msg:
                 )
 
             # TODO: uint256??
-            elif ftype == "int" or ftype == "uint":
+            # TODO: int[] ???
+            elif ftype == "uint256": # TODO: int256?
                 data32s[i] = claripy.BVS(f"{ftype} input arg", 256)
 
             else:

@@ -1,6 +1,7 @@
 from utils import *
 from evm.transaction import Transaction# TODO: move it to evm __init__
 from evm.provider import provider
+from evm.contract import Contract
 
 TMPADDR = provider.eth.accounts[0]
 
@@ -18,7 +19,9 @@ class Fuzzer:
 
     def build_one_txn(self, fname: str) -> Transaction:
         # TODO: 
-        unsent_txn = self.con.functions[fname](TMPADDR).build_transaction({
+    
+        # TODO: 参数设置
+        unsent_txn = self.con.functions[fname](TMPADDR, 1).build_transaction({
             "to": TMPADDR,
             # "from": TMPADDR,
             # "nonce": w3.eth.get_transaction_count(TMPADDR),

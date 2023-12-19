@@ -1,5 +1,6 @@
 from utils import *
 from .importer import *
+from evm.contract import Contract
 
 import copy
 BV = claripy.ast.BV
@@ -113,8 +114,6 @@ class State:
     def find_one_solution(self, var: BV) -> BV:
         solutions = self.solver.eval(var, 2)
         if len(solutions) > 1:
-            raise MultipleSolutionsError(
-                "MultipleSolutionsError"
-            )
+            raise SymbolicMultiSolutions
         logger.debug(type(solutions))
         return solutions[0] # TODO:solution的类型

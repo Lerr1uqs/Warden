@@ -6,9 +6,9 @@ import numbers
 from pydantic import BaseModel
 CONCRETE = numbers.Number# TODO
 # internal
-from disassembler import (SolidityBinary)
-from evm.contract import Contract
-from evm.state    import State
+# from disassembler import (SolidityBinary)
+# from evm.contract import Contract
+# from evm.state    import State
 
 class Todo:
     def __init__(self) -> None:
@@ -17,6 +17,10 @@ class Todo:
     # TODO:
 class MultipleSolutionsError(ValueError):
     pass
+
+class SymbolicMultiSolutions(Exception):
+    pass
+
 
 bvv = lambda v : claripy.BVV(v, 256)
 # bvs = lambda v : claripy.BVS(v, 256)

@@ -2,6 +2,7 @@ from utils import *
 import secrets
 import json
 from evm.provider import provider
+from disassembler import SolidityBinary
 # from web3 import Web3, EthereumTesterProvider
 
 # w3 = Web3(EthereumTesterProvider())
@@ -29,14 +30,6 @@ class Contract:
         # tx_hash = self._contract.constructor().transact({"from": TMPADDR}) # TODO:
         # receipt = w3.eth.get_transaction_receipt(tx_hash)
 
-        unsent_billboard_tx = self._contract.functions["vuln"](TMPADDR).build_transaction({
-            "to": TMPADDR,
-            # "from": TMPADDR,
-            # "nonce": w3.eth.get_transaction_count(TMPADDR),
-        })
-
-        logger.debug(unsent_billboard_tx)
-    
     @property
     def functions(self):
         return self._contract.functions
