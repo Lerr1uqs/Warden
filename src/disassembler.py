@@ -4,6 +4,8 @@ import evmdasm
 from binascii import (hexlify, unhexlify)
 from compiler import Artifact
 
+Instruction = evmdasm.Instruction
+
 class SolidityBinary:
 
     rtcode: str = ""

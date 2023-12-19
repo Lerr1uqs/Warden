@@ -2,6 +2,7 @@ from utils import *
 import copy
 
 BV = claripy.ast.BV
+from numbers import Integral
 
 # storage的粒度比memory更细 是对slot进行265位的处理的
 class Storage:
@@ -29,18 +30,25 @@ class Storage:
 
         if idx.symbolic:
             # means I can found a arbitrary slot write?
-            logger.warning("TODO")
-            ...
+            raise NotImplementedError("TODO")
+        else:
+            idx = idx.concrete_value
 
+        logger.debug(slots)
         return claripy.simplify(slots[idx])# TODO: what?
     
     # TODO: 类型
-    def __setitem__(self, idx, value: Union[BV, claripy.ast.Bool]) -> None: # TODO:类型
-        if isinstance(value, claripy.Bool):
-            value = claripy.If(value, 1, 0)
+    # TOOD:
+    def __setitem__(self, idx: Union[BV, Integral], value: Union[BV, claripy.ast.Bool]) -> None: # TODO:类型
+        if isinstance(value, claripy.ast.Bool):
+            value = claripy.If(value, BVV1, BVV0)
 
+        # TODO: 转换函数
+        if isinstance(idx, BV):
+            assert idx.concrete
+            idx = idx.concrete_value
         
-        self._slots[value] = value
+        self._slots[idx] = value
         self._indexes_set.add(idx)
 
     def clone(self):

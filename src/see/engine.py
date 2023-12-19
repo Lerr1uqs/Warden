@@ -5,6 +5,7 @@ from fuzzer import Fuzzer
 import numbers
 import const
 import math
+import pdb
 
 from bugs import Bugs
 from collections import defaultdict
@@ -59,6 +60,10 @@ class SymExecEngine:
 
 
     def add_branch(self, s: State) -> None:
+
+        s.solver.downsize()
+        s.solver.simplify()
+
         # 对一个约束条件起两个分支 其中一个可能走不了
         if not s.solver.satisfiable():
             logger.warning(f"state can't satisfiable {s.solver.constraints}")
@@ -67,9 +72,6 @@ class SymExecEngine:
         if hash(s) in self.states_hash_seen:
             logger.debug("avoided adding visited state")
             return
-        
-        s.solver.downsize()
-        s.solver.simplify()
 
         self.states_hash_seen.add(hash(s))
         # 默认小顶堆
@@ -132,6 +134,11 @@ class SymExecEngine:
                 isinstance(i, claripy.ast.base.BV) for i in state.stack
             ), "The stack musty only contains claripy BV's"
 
+            bps = []
+            for bp in bps:
+                if state.pc == bp:
+                    import pdb; pdb.set_trace()
+
             # Trivial operations first
             # TODO: sanity check
             if False:
@@ -164,20 +171,23 @@ class SymExecEngine:
                 try:
                     s1 = state.find_one_solution(s1)  # pylint:disable=invalid-name 获得一个具体值
                 except SymbolicMultiSolutions:
+
+                    assert s1.symbolic
                     # 有多个解 s1 是symbolic的
                     state.solver.add(s1 != 0)
-                    state.stack.push(s0 / s1)
+                    state.stack.push(s0 // s1)
                     # state.stack.push(claripy.If(s1 == 0, BVV0, s0 / s1))# 这里是不是可以抛出一个div zero 异常
                 else:
                     if s1 == 0:
-                        state.stack.push(BVV0)
+                        raise NotImplementedError("divide by zero")
                     elif s1 == 1:
                         state.stack.push(s0)
-                    elif s1 & (s1 - 1) == 0:# 偶数
+                    elif s1 % 2 == 0:
                         exp = int(math.log(s1, 2))
                         state.stack.push(s0.LShR(exp))
                     else:
-                        state.stack.push(s0 / s1)
+                        raise NotImplementedError("奇数除法")
+                        state.stack.push(s0 // s1)
             elif op == const.opcode.SDIV:
                 [s0, s1] = state.stack.pop(2)
                 try:
@@ -376,9 +386,12 @@ class SymExecEngine:
                 state.pc = addr
                 self.add_branch(state)
                 return False
+            
             elif op == const.opcode.JUMPI:
 
-                addr, cond = state.stack.pop(),  state.stack.pop()
+                addr, cond = state.stack.pop(), state.stack.pop()
+                # if state.pc == 0x024d:
+                #     import pdb;pdb.set_trace()
                 
                 if addr.symbolic:
                     raise NotImplementedError("arbitrary jump")
@@ -405,12 +418,10 @@ class SymExecEngine:
                         # continue to execute to next instruction
                         pass
 
-                    elif cond.concrete_value == 1:
+                    else: # EVM allow non-zero condition value
                         # subsequent state.pc += 1
                         state.pc = addr.concrete_value - 1
                         
-                    else:
-                        raise RuntimeError("unreachable")
 
             elif op == const.opcode.PUSH0:
                 '''
@@ -488,7 +499,7 @@ class SymExecEngine:
                     else:
                         v = index.concrete_value - 4
                         assert v % 32 == 0, f"v = {v}"
-                        i = v % 32
+                        i = v // 32
 
                         state.stack.push(
                             txn.msg[i]
@@ -606,47 +617,59 @@ class SymExecEngine:
                 state.stack.push(bvv(state.memory.size()))# TODO
 
             elif op == const.opcode.SLOAD:# stack.push(storage[key])
-                state.pc += 1
+
                 key = state.stack.pop()
-                for w_key, w_value in state.storage_written.items():
-                    read_from_written = [w_key == key]
-                    # 能从任何一个写过的storage slot读出
-                    if state.solver.satisfiable(extra_constraints=read_from_written):
-                        new_state = state.clone()
-                        new_state.solver.add(read_from_written)# 如果可以对一个地方写两次 就创建一个新状态 让 w_key == key
-                        new_state.stack.push(w_value)
-                        self.add_branch(new_state)
-                    state.solver.add(w_key != key)# 老状态没法eval出 w_key == key
-                # 满足从一个没读过的storage slot读
-                if state.solver.satisfiable():
-                    raise Exception("impossible") # TODO:
-                    assert key not in state.storage_written # TODO:
-                    if key not in state.storage_read:
-                        state.storage_read[key] = claripy.BVS("storage[%s]" % key, 256)
-                    state.stack.push(state.storage_read[key])
-                    self.add_branch(state)
-                return
+                
+                if key.concrete:
+                    state.stack.push(
+                        state.storage[key]
+                    )
+                else:
+                    raise NotImplementedError
+
+                # for w_key, w_value in state.storage_written.items():
+                #     read_from_written = [w_key == key]
+                #     # 能从任何一个写过的storage slot读出
+                #     if state.solver.satisfiable(extra_constraints=read_from_written):
+                #         new_state = state.clone()
+                #         new_state.solver.add(read_from_written)# 如果可以对一个地方写两次 就创建一个新状态 让 w_key == key
+                #         new_state.stack.push(w_value)
+                #         self.add_branch(new_state)
+                #     state.solver.add(w_key != key)# 老状态没法eval出 w_key == key
+                # # 满足从一个没读过的storage slot读
+                # if state.solver.satisfiable():
+                #     raise Exception("impossible") # TODO:
+                #     assert key not in state.storage_written # TODO:
+                #     if key not in state.storage_read:
+                #         state.storage_read[key] = claripy.BVS("storage[%s]" % key, 256)
+                #     state.stack.push(state.storage_read[key])
+                #     self.add_branch(state)
+                # return
 
             elif op == const.opcode.SSTORE:
                 # write value to storage[key]
-                state.pc += 1
                 key = state.stack.pop()
                 value = state.stack.pop()
-                # TODO: 如果能写一个没读过的 算不算任意写呢？（好像不算 但是读才算
-                for w_key, w_value in state.storage_written.items():
-                    read_from_written = [w_key == key]
-                    if state.solver.satisfiable(extra_constraints=read_from_written):
-                        new_state = state.clone()
-                        new_state.solver.add(read_from_written)
-                        new_state.storage_written[w_key] = value
-                        self.add_branch(new_state)
-                    state.solver.add(w_key != key)
-                # 如果能写一个没写过的地方
-                if state.solver.satisfiable():
-                    assert key not in state.storage_written
-                    state.storage_written[key] = value
-                    self.add_branch(state)
-                return
+                
+                if key.concrete:
+                    state.storage[key] = value
+                else:
+                    raise NotImplementedError("idx is symbolic 任意写？")
+                # # TODO: 如果能写一个没读过的 算不算任意写呢？（好像不算 但是读才算
+                # for w_key, w_value in state.storage_written.items():
+                #     read_from_written = [w_key == key]
+                #     if state.solver.satisfiable(extra_constraints=read_from_written):
+                #         new_state = state.clone()
+                #         new_state.solver.add(read_from_written)
+                #         new_state.storage_written[w_key] = value
+                #         self.add_branch(new_state)
+                #     state.solver.add(w_key != key)
+                # # 如果能写一个没写过的地方
+                # if state.solver.satisfiable():
+                #     assert key not in state.storage_written
+                #     state.storage_written[key] = value
+                #     self.add_branch(state)
+                # return
 
             elif op == const.opcode.CALL:
                 raise NotImplementedError

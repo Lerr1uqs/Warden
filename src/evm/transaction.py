@@ -41,7 +41,12 @@ from numbers import Integral
 def split_bytes32_into_list(byte_string: bytes) -> List[bytes]:
     chunk_size = 32
     # 使用 rjust 将 byte_string 填充到长度为 chunk_size 的整数倍
-    padded_string = byte_string.rjust((len(byte_string) // chunk_size + 1) * chunk_size, b'\x00')
+    if len(byte_string) % 32 != 0:
+        pandding = len(byte_string) // chunk_size + 1
+    else:
+        pandding = len(byte_string) // chunk_size 
+
+    padded_string = byte_string.rjust(pandding * chunk_size, b'\x00')
     # 分割字节序列并返回结果
     return [padded_string[i:i+chunk_size] for i in range(0, len(padded_string), chunk_size)]
 
@@ -52,7 +57,7 @@ class _Msg:
         assert len(sig) == 32
         return claripy.BVV(sig, 256)
         
-    def __init__(self, calldata: str, func_types: Dict) -> None:
+    def __init__(self, calldata: str, func_param_types: Dict) -> None:
 
         assert isinstance(calldata, str)
         # logger.debug(calldata)
@@ -62,8 +67,8 @@ class _Msg:
 
         data = self.data[4:] # remove first 4-bytes signature
 
-        paramsize = len(func_types)
-        logger.debug(func_types)
+        paramsize = len(func_param_types)
+        logger.debug(func_param_types)
         logger.debug(hexlify(data).decode('utf-8'))
         
         '''
@@ -86,11 +91,11 @@ class _Msg:
 
         data32s: List[Union[bytes, BV]] = split_bytes32_into_list(data)
         start_at_idx = [] # bytes array string的长度所在索引
-        
-        for (i, ftype) in enumerate(func_types):
+
+        for (i, ftype) in enumerate(func_param_types):
 
             if ftype == "address":
-                data32s[i] = claripy.BVS("addr arg", 256)
+                data32s[i] = claripy.BVS("input-addr", 256)
 
             elif ftype == ["bytes", "array", "string"]:
 
@@ -104,7 +109,7 @@ class _Msg:
             # TODO: uint256??
             # TODO: int[] ???
             elif ftype == "uint256": # TODO: int256?
-                data32s[i] = claripy.BVS(f"{ftype} input arg", 256)
+                data32s[i] = claripy.BVS(f"input-{ftype}", 256)
 
             else:
                 raise NotImplementedError(f"unhandled function type {ftype}")
@@ -116,16 +121,25 @@ class _Msg:
             if ftype == "bytes" or ftype == "string":
                 assert length <= 32 # TODO: 当前不支持更长的bytes
                 # TODO: 是否需要长度校验？
-                data32s[i+1] = claripy.BVS(f"{ftype} input arg", length * 8)
+                data32s[i+1] = claripy.BVS(f"input-{ftype}", length * 8)
 
             elif ftype == "array":
                 for j in range(length):
-                    data32s[i+j+1] = claripy.BVS(f"{ftype} input arg[{j}]", 256) # TODO: 注意int位数
+                    data32s[i+j+1] = claripy.BVS(f"input-{ftype}[{j}]", 256) # TODO: 注意int位数
 
             else:
                 raise NotImplementedError(f"error type {ftype}")
             
         self.data32s = data32s
+
+    def __repr__(self) -> str:
+
+        r = []
+        
+        for i, v in enumerate(self.data32s):
+            r.append(f"{i} {v}")
+            
+        return "\n".join(r)
 
 
     def __getitem__(self, idx: Integral) -> BV:

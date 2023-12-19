@@ -25,8 +25,9 @@ class SymbolicMultiSolutions(Exception):
 bvv = lambda v : claripy.BVV(v, 256)
 # bvs = lambda v : claripy.BVS(v, 256)
 
-BVV0 = bvv(0)
-BVV1 = bvv(1)
+BVV0 = claripy.BVV(0, 256)
+BVV1 = claripy.BVV(1, 256)
+# BVV1 = bvv(1)
 BV = claripy.ast.BV
 
 # TEMP: temporary

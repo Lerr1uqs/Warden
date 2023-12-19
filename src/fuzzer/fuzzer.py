@@ -21,7 +21,7 @@ class Fuzzer:
         # TODO: 
     
         # TODO: 参数设置
-        unsent_txn = self.con.functions[fname](TMPADDR, 1).build_transaction({
+        unsent_txn = self.con.functions[fname](TMPADDR, 0x0721).build_transaction({
             "to": TMPADDR,
             # "from": TMPADDR,
             # "nonce": w3.eth.get_transaction_count(TMPADDR),
