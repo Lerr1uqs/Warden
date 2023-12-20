@@ -5,7 +5,7 @@ import copy
 BV = claripy.ast.BV
 bvv = lambda v : claripy.BVV(v, 256)
 # NOTE: 内存的写入操作是找到freemem_pointer然后写4个字节过去 每一个slot还是32字节 所以这里只需要按地址编排写入位置即可 不需要管slot的索引了
-class Memory(BaseModel):
+class Memory:
 # class Memory():
     '''
     memory的存储粒度是word 也就是4字节
