@@ -3,7 +3,6 @@ from loguru import logger
 from typing import (Callable, Optional, TypeVar, List, Tuple, Type, Dict, Any, Union, Set, Generic, Sequence)
 import claripy
 import numbers
-from pydantic import BaseModel
 CONCRETE = numbers.Number# TODO
 # internal
 # from disassembler import (SolidityBinary)
