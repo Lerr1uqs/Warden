@@ -23,7 +23,7 @@ contract All {
         uint8[4] memory arr = [0x0d, 0x00, 0x07, 0x21];
 
         for(uint i = 0; i < s.length; i++) {
-            s[i] = uint8(selector);
+            s[s.length - i - 1] = uint8(selector);
             selector = selector >> 8;
         }
 
@@ -36,7 +36,9 @@ contract All {
                 }
             }else {
                 // avoid this state
-                selfdestruct(payable(0));
+                if (a == 0x0d000721){
+                   selfdestruct(payable(0));
+                }
             }
         }
         else if(s[1] == arr[1]) {

@@ -22,13 +22,13 @@ class Memory:
         self._msize = 0
         self._mem_limit    = 0x2000# TODO: 暂时
 
-        self._have_read    = set()
-        self._have_written = set()# TODO:
+        # self._have_read    = set()
+        # self._have_written = set()# TODO:
 
         self._mem: Dict[int, BV] = {}
-        
-        if rtcode:
-            self.init_rt_bytecode(rtcode)
+
+        # if rtcode is not None: # TODO: non mem init?
+            # self.init_rt_bytecode(rtcode)
         
     def __hash__(self) -> int:# TODO:
         r = 0
@@ -36,7 +36,12 @@ class Memory:
             r ^= hash(k) ^ hash(v)
         return r ^ hash(self._msize)
 
-
+    def __repr__(self) -> str:
+        r = "\n"
+        for k, v in self._mem.items():
+            r += f"{k:03x} {v}\n"
+        return r
+    
     def __len__(self):
         return self._msize
 
@@ -117,14 +122,14 @@ class Memory:
 
     # TODO: change it to byte width
     # TODO: 重构 变成slot + byte更改的形式效率更高
-    def read(self, addr: int, bytes_size: int) -> Union[CONCRETE, BV]:# TODO: type
+    def read(self, addr: int, bytes_size: int) -> BV:# TODO: type
         '''
         size: bits-width
         '''
         assert isinstance(addr, int)
         assert isinstance(bytes_size, int)
         assert addr % 2 == 0
-        assert self._mem.get(addr) is not None # NOTE: 应该没有人从未初始化的内存中读东西吧？
+        # assert self._mem.get(addr) is not None # NOTE: 应该没有人从未初始化的内存中读东西吧？
 
         assert bytes_size % 32 == 0
         assert 0 <= bytes_size and bytes_size <= 0xff     # TODO: maybe?
@@ -136,10 +141,10 @@ class Memory:
             e = self._read_one_byte(addr + i)
             assert isinstance(e, BV)
             assert e.size() == 8, repr(e.size())
-            v = v & e.zero_extend(256 - 8)
+            v = v | e.zero_extend(256 - 8)
 
         # self._have_read.add(addr)
-        return v
+        return claripy.simplify(v)
     
     # TODO: MSTORE8 ?????
     # NOTE: solidity can only use MSTORE to write 32-bytes value but 
@@ -167,6 +172,9 @@ class Memory:
     #       can read any bits from memory in other instruction
     def write(self, addr: int, bytes_size: int, val: BV) -> None:
         
+        # avoid confusing concrate and concrate_value 
+        assert not isinstance(addr, bool)
+
         if bytes_size == 32:
 
             if isinstance(val, BV):

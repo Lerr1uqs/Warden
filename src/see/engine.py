@@ -17,7 +17,8 @@ from evm.transaction import Transaction
 from assistant.observer import Observer
 from assistant.statewindow import StateWindow
 from threading import Thread
-
+from rich.console import Console
+console = Console()
 
 class SymExecEngine:
     def __init__(self, sb: SolidityBinary, con: Contract) -> None:
@@ -34,6 +35,7 @@ class SymExecEngine:
         self.fuzz = Fuzzer(con)
         self.bugs: Dict[VulnTypes, List[State]] = defaultdict(lambda: []) # TODO: vuln catalogue
         self.observer = Observer(sb.instructions)
+        # self.observer.notify_statewindow_shutdown = True # TODO: debug mode
     
     # TEMP:
     def add_for_fuzz(self, s: State, var: BV, tries: List[Callable]=[]) -> None:
@@ -135,10 +137,10 @@ class SymExecEngine:
                 if len(self.bugs[bug]) > 0:
                     logger.critical(f"found {bug}")
 
-        except Exception as e:
+        except Exception:
             self.observer.notify_statewindow_shutdown = True
             wt.join() # 一定要让join能把thread收回来 不然就没法中断了
-            raise e
+            console.print_exception(show_locals=True)
         finally:
             self.observer.notify_statewindow_shutdown = True
             wt.join()
@@ -168,9 +170,9 @@ class SymExecEngine:
             logger.debug("\nStorage: %s\n" % state.storage)
             logger.debug("\nStack: %s" % state.stack)
 
-            if len(state.stack) > 0 and state.stack[-1].symbolic and "input-uint256_3" in str(state.stack[-1]) and curinst.name == "SSTORE":
-                self.observer.notify_statewindow_shutdown = True
-                import pdb;pdb.set_trace()
+            # if len(state.stack) > 0 and state.stack[-1].symbolic and "input-uint256_3" in str(state.stack[-1]) and curinst.name == "SSTORE":
+            #     self.observer.notify_statewindow_shutdown = True
+            #     import pdb;pdb.set_trace()
 
             assert isinstance(op, numbers.Number)
             assert all(
@@ -182,6 +184,7 @@ class SymExecEngine:
             bps = []
             for bp in bps:
                 if state.pc == bp:
+                    self.observer.notify_statewindow_shutdown = True
                     import pdb; pdb.set_trace()
 
             # Trivial operations first
@@ -198,21 +201,21 @@ class SymExecEngine:
             elif op == const.opcode.JUMPDEST:
                 pass
             elif op == const.opcode.ADD:
-                [s0, s1] = state.stack.pop(2)
-                state.stack.push(s0 + s1)
+                [s0, s1] = state.stack_pop(2)
+                state.stack_push(s0 + s1)
             elif op == const.opcode.SUB:
-                [s0, s1] = state.stack.pop(2)
-                state.stack.push(s0 - s1)
+                [s0, s1] = state.stack_pop(2)
+                state.stack_push(s0 - s1)
             elif op == const.opcode.MUL:
-                [s0, s1] = state.stack.pop(2)
-                state.stack.push(s0 * s1)
+                [s0, s1] = state.stack_pop(2)
+                state.stack_push(s0 * s1)
             elif op == const.opcode.DIV:
                 # TODO: 除数为0会导致revert
                 # We need to use claripy.LShR instead of a division if possible,
                 # because the solver is bad dealing with divisions, better
                 # with shifts. And we need shifts to handle the solidity ABI
                 # for function selection.
-                [s0, s1] = state.stack.pop(2) # s0 / s1
+                [s0, s1] = state.stack_pop(2) # s0 / s1
                 try:
                     s1 = state.find_one_solution(s1)  # pylint:disable=invalid-name 获得一个具体值
                 except SymbolicMultiSolutions:
@@ -220,113 +223,113 @@ class SymExecEngine:
                     assert s1.symbolic
                     # 有多个解 s1 是symbolic的
                     state.solver.add(s1 != 0)
-                    state.stack.push(s0 // s1)
-                    # state.stack.push(claripy.If(s1 == 0, BVV0, s0 / s1))# 这里是不是可以抛出一个div zero 异常
+                    state.stack_push(s0 // s1)
+                    # state.stack_push(claripy.If(s1 == 0, BVV0, s0 / s1))# 这里是不是可以抛出一个div zero 异常
                 else:
                     if s1 == 0:
                         raise NotImplementedError("divide by zero")
                     elif s1 == 1:
-                        state.stack.push(s0)
+                        state.stack_push(s0)
                     elif s1 % 2 == 0:
                         exp = int(math.log(s1, 2))
-                        state.stack.push(s0.LShR(exp))
+                        state.stack_push(s0.LShR(exp))
                     else:
                         raise NotImplementedError("奇数除法")
-                        state.stack.push(s0 // s1)
+                        state.stack_push(s0 // s1)
             elif op == const.opcode.SDIV:
-                [s0, s1] = state.stack.pop(2)
+                [s0, s1] = state.stack_pop(2)
                 try:
                     s1 = state.find_one_solution(s1)
                 except MultipleSolutionsError:
-                    state.stack.push(claripy.If(s1 == 0, BVV0, s0.SDiv(s1))) # TODO: 除数为0
+                    state.stack_push(claripy.If(s1 == 0, BVV0, s0.SDiv(s1))) # TODO: 除数为0
                 else:
-                    state.stack.push(BVV0 if s1 == 0 else s0.SDiv(s1))
+                    state.stack_push(BVV0 if s1 == 0 else s0.SDiv(s1))
             elif op == const.opcode.MOD:
-                [s0, s1] = state.stack.pop(2)
+                [s0, s1] = state.stack_pop(2)
                 try:
                     s1 = state.find_one_solution(s1)
                 except MultipleSolutionsError:
-                    state.stack.push(claripy.If(s1 == 0, BVV0, s0 % s1)) # TODO: mod 0
+                    state.stack_push(claripy.If(s1 == 0, BVV0, s0 % s1)) # TODO: mod 0
                 else:
-                    state.stack.push(BVV0 if s1 == 0 else s0 % s1)
+                    state.stack_push(BVV0 if s1 == 0 else s0 % s1)
             elif op == const.opcode.SMOD:
-                [s0, s1] = state.stack.pop(2)
+                [s0, s1] = state.stack_pop(2)
                 try:
                     s1 = state.find_one_solution(s1)
                 except MultipleSolutionsError:
-                    state.stack.push(claripy.If(s1 == 0, BVV0, s0.SMod(s1))) # TODO: mod 0
+                    state.stack_push(claripy.If(s1 == 0, BVV0, s0.SMod(s1))) # TODO: mod 0
                 else:
-                    state.stack.push(BVV0 if s1 == 0 else s0.SMod(s1))
+                    state.stack_push(BVV0 if s1 == 0 else s0.SMod(s1))
             elif op == const.opcode.ADDMOD: # (a + b) % N
-                [s0, s1, s2] = state.stack.pop(3)
+                [s0, s1, s2] = state.stack_pop(3)
                 try:
                     s1 = state.find_one_solution(s1)
                 except MultipleSolutionsError:
-                    state.stack.push(claripy.If(s2 == 0, BVV0, (s0 + s1) % s2))
+                    state.stack_push(claripy.If(s2 == 0, BVV0, (s0 + s1) % s2))
                 else:
-                    state.stack.push(BVV0 if s2 == 0 else (s0 + s1) % s2)
+                    state.stack_push(BVV0 if s2 == 0 else (s0 + s1) % s2)
             elif op == const.opcode.MULMOD:
-                [s0, s1, s2] = state.stack.pop(3)
+                [s0, s1, s2] = state.stack_pop(3)
                 try:
                     s1 = state.find_one_solution(s1)
                 except MultipleSolutionsError:
-                    state.stack.push(claripy.If(s2 == 0, BVV0, (s0 * s1) % s2))
+                    state.stack_push(claripy.If(s2 == 0, BVV0, (s0 * s1) % s2))
                 else:
-                    state.stack.push(BVV0 if s2 == 0 else (s0 * s1) % s2)
+                    state.stack_push(BVV0 if s2 == 0 else (s0 * s1) % s2)
             elif op == const.opcode.SHL:
-                [shift, value] = state.stack.pop(2)
-                state.stack.push(value << shift)
+                [shift, value] = state.stack_pop(2)
+                state.stack_push(value << shift)
             elif op == const.opcode.SHR:
-                [shift, value] = state.stack.pop(2)
-                state.stack.push(value.LShR(shift))
+                [shift, value] = state.stack_pop(2)
+                state.stack_push(value.LShR(shift))
             elif op == const.opcode.SAR:
-                [shift, value] = state.stack.pop(2)
-                state.stack.push(claripy.RotateRight(value, shift))
+                [shift, value] = state.stack_pop(2)
+                state.stack_push(claripy.RotateRight(value, shift))
             elif op == const.opcode.EXP: # a ** b
-                [base, exp] = state.stack.pop(2)
+                [base, exp] = state.stack_pop(2)
                 base_solu = state.find_one_solution(base)
                 if base_solu == 2:
-                    state.stack.push(1 << exp)
+                    state.stack_push(1 << exp)
                 else:
                     try:
                         exp_solu = state.find_one_solution(exp)
                     except MultipleSolutionsError:
-                        state.stack.push(exp)  # restore stack
-                        state.stack.push(base)
+                        state.stack_push(exp)  # restore stack
+                        state.stack_push(base)
                         self.add_for_fuzz(state, exp, EXP_EXPONENT_FUZZ)
                         return False
                     else:
-                        state.stack.push(claripy.BVV(base_solu ** exp_solu, 256))
+                        state.stack_push(claripy.BVV(base_solu ** exp_solu, 256))
             elif op == const.opcode.LT: # a < b
-                [s0, s1] = state.stack.pop(2)
-                state.stack.push(
+                [s0, s1] = state.stack_pop(2)
+                state.stack_push(
                     claripy.If(claripy.ULT(s0, s1), BVV1, BVV0)
                 )
             elif op == const.opcode.GT:
-                [s0, s1] = state.stack.pop(2)
-                state.stack.push(
+                [s0, s1] = state.stack_pop(2)
+                state.stack_push(
                     claripy.If(claripy.UGT(s0, s1), BVV1, BVV0)
                 )
             elif op == const.opcode.SLT:
-                [s0, s1] = state.stack.pop(2)
-                state.stack.push(
+                [s0, s1] = state.stack_pop(2)
+                state.stack_push(
                     claripy.If(claripy.SLT(s0, s1), BVV1, BVV0)
                 )
             elif op == const.opcode.SGT:
-                [s0, s1] = state.stack.pop(2)
-                state.stack.push(
+                [s0, s1] = state.stack_pop(2)
+                state.stack_push(
                     claripy.If(claripy.SGT(s0, s1), BVV1, BVV0)
                 )
             elif op == const.opcode.SIGNEXTEND: # sign extend s1 from (s0+1) bytes to 32 bytes
                 raise NotImplementedError
                 # TODO: Use Claripy's SignExt that should do exactly that.
-                [s0, s1] = state.stack.pop(2)
+                [s0, s1] = state.stack_pop(2)
                 # s0 is the number of bits. s1 the number we want to extend.
                 s0 = state.find_one_solution(s0)
                 if s0 <= 31:
                     # 分正数和复数
                     sign_bit = 1 << (s0 * 8 + 7)
-                    state.stack.push(
+                    state.stack_push(
                         claripy.If(
                             s1 & sign_bit == 0,
                             s1 & (sign_bit - 1),
@@ -335,107 +338,117 @@ class SymExecEngine:
                     )
                 else:
                     assert s0 == 32
-                    state.stack.push(s1)
+                    state.stack_push(s1)
             elif op == const.opcode.EQ:
-                [s0, s1] = state.stack.pop(2)
-                state.stack.push(
+                [s0, s1] = state.stack_pop(2)
+                state.stack_push(
                     claripy.If(s0 == s1, BVV1, BVV0)
                 )
             elif op == const.opcode.ISZERO:
-                state.stack.push(
-                    claripy.If(state.stack.pop() == BVV0, BVV1, BVV0)
+                state.stack_push(
+                    claripy.If(state.stack_pop() == BVV0, BVV1, BVV0)
                 )
             elif op == const.opcode.AND:
-                [s0, s1] = state.stack.pop(2)
-                state.stack.push(s0 & s1)
+                [s0, s1] = state.stack_pop(2)
+                state.stack_push(s0 & s1)
             elif op == const.opcode.OR:
-                [s0, s1] = state.stack.pop(2)
-                state.stack.push(s0 | s1)
+                [s0, s1] = state.stack_pop(2)
+                state.stack_push(s0 | s1)
             elif op == const.opcode.XOR:
-                [s0, s1] = state.stack.pop(2)
-                state.stack.push(s0 ^ s1)
+                [s0, s1] = state.stack_pop(2)
+                state.stack_push(s0 ^ s1)
             elif op == const.opcode.NOT:
-                state.stack.push(~state.stack.pop())
+                state.stack_push(~state.stack_pop())
             elif op == const.opcode.BYTE:
                 # ith byte of (u)int256 x, from the left
                 # i, x
                 # (x >> (248 - i * 8)) && 0xFF
-                [s0, s1] = state.stack.pop(2)
-                state.stack.push(
+                [s0, s1] = state.stack_pop(2)
+                state.stack_push(
                     s1.LShR(claripy.If(s0 > 31, 32, 31 - s0) * 8) & 0xFF
                 )
 
             elif op == const.opcode.PC:
-                state.stack.push(bvv(state.pc))
+                state.stack_push(bvv(state.pc))
             elif op == const.opcode.GAS:
                 # gasRemaining
-                # TODO:
-                raise NotImplementedError
-                state.stack.push(state.env.gas)
+                # TODO:貌似不影响什么 随便给个值
+                # raise NotImplementedError
+                state.stack_push(claripy.BVV(10000000, 256))
             elif op == const.opcode.ADDRESS:
                 raise NotImplementedError
-                state.stack.push(state.env.address)
+                state.stack_push(state.env.address)
             elif op == const.opcode.CHAINID:
                 raise NotImplementedError
-                state.stack.push(state.env.chainid)
+                state.stack_push(state.env.chainid)
             elif op == const.opcode.SELFBALANCE:
                 raise NotImplementedError
-                state.stack.push(state.env.balance)
+                state.stack_push(state.env.balance)
             elif op == const.opcode.BALANCE:
                 # addr.balance
                 raise NotImplementedError
-                addr = state.find_one_solution(state.stack.pop())# WHY?
+                addr = state.find_one_solution(state.stack_pop())# WHY?
                 if addr != solution(state.env.address):
                     raise utils.InterpreterError(
                         state, "Can only query balance of the current contract for now"
                     )
-                state.stack.push(state.env.balance)
+                state.stack_push(state.env.balance)
             elif op == const.opcode.ORIGIN:
                 raise NotImplementedError
-                state.stack.push(state.env.origin)
+                state.stack_push(state.env.origin)
             elif op == const.opcode.CALLER:
                 raise NotImplementedError
-                state.stack.push(state.env.caller)
+                state.stack_push(state.env.caller)
             elif op == const.opcode.CALLVALUE:
                 # raise NotImplementedError
                 # TODO: 没有fallback函数 如果有msg.value会导致revert
-                # state.stack.push(claripy.BVS(f"CALLVALUE[{state.pc}]", 256))# TODO: use Txn or Contract
-                state.stack.push(txn.value)
+                # state.stack_push(claripy.BVS(f"CALLVALUE[{state.pc}]", 256))# TODO: use Txn or Contract
+                state.stack_push(txn.value)
             elif op == const.opcode.BLOCKHASH:
                 raise NotImplementedError
-                block_num = state.stack.pop()
+                block_num = state.stack_pop()
                 if block_num not in state.env.block_hashes:
                     state.env.block_hashes[block_num] = claripy.BVS(
                         "blockhash[%s]" % block_num, 256
                     )
-                state.stack.push(state.env.block_hashes[block_num])
+                state.stack_push(state.env.block_hashes[block_num])
             elif op == const.opcode.TIMESTAMP:
                 raise NotImplementedError
-                state.stack.push(state.env.block_timestamp)
+                state.stack_push(state.env.block_timestamp)
             elif op == const.opcode.NUMBER:
                 raise NotImplementedError
-                state.stack.push(state.env.block_number)
+                state.stack_push(state.env.block_number)
             elif op == const.opcode.COINBASE:
                 raise NotImplementedError
-                state.stack.push(state.env.coinbase)
+                state.stack_push(state.env.coinbase)
             elif op == const.opcode.DIFFICULTY:
                 raise NotImplementedError
-                state.stack.push(state.env.difficulty)
+                state.stack_push(state.env.difficulty)
             elif op == const.opcode.POP:
-                state.stack.pop()
+                state.stack_pop()
             elif op == const.opcode.JUMP:
                 # $pc := dst
                 # TODO: check here arbitrary jump
-                addr = state.find_one_solution(state.stack.pop())
-                if addr > self.sb.end_addr or self.sb.instruction_at(addr).opcode != const.opcode.JUMPDEST:# TODO:
-                    raise Exception("Invalid jump (0x%x) at pc 0x%x" % (addr, state.pc)) # TODO:
-                state.pc = addr
-                self.add_branch(state)
-                return False
+                addr = state.stack_pop()
+                
+                if addr.symbolic:
+                    self.observer.add_a_vuln(
+                        VulnTypes.ARBITRARY_JUMP,
+                        state
+                    )
+                    return False # TODO:
+                else:
+                    addr = addr.concrete_value
+
+                    if addr > self.sb.end_addr or self.sb.instruction_at(addr).opcode != const.opcode.JUMPDEST:# TODO:
+                        raise Exception("Invalid jump (0x%x) at pc 0x%x" % (addr, state.pc)) # TODO:
+                    state.pc = addr
+                    self.add_branch(state)
+                    return False
             
             elif op == const.opcode.JUMPI:
 
-                addr, cond = state.stack.pop(), state.stack.pop()
+                addr, cond = state.stack_pop(), state.stack_pop()
                 # if state.pc == 0x024d:
                 #     import pdb;pdb.set_trace()
                 
@@ -482,23 +495,23 @@ class SymExecEngine:
                 PUSH2 4070
                 '''
                 pushnum = op - const.opcode.PUSH1 + 1
-                state.pc += pushnum
 
-                state.stack.push(
+                state.stack_push(
                     claripy.BVV(int(curinst.operand, 16), 256)
                 )
+                # NOTE: pc += ... must below the push which is used this pc
+                state.pc += pushnum
 
             elif const.opcode.DUP1 <= op <= const.opcode.DUP16:
                 # clone ith value on stack
                 depth = op - const.opcode.DUP1 + 1
-                dup = state.stack.stack[-depth] # TODO: provide a stack index select
-                state.stack.push(dup)
+                # dup = state.stack.stack[-depth] # TODO: provide a stack index select
+                state.stack_dup(depth)
 
             elif const.opcode.SWAP1 <= op <= const.opcode.SWAP16:
                 depth = op - const.opcode.SWAP1 + 1
-                temp = state.stack[-depth - 1]
-                state.stack[-depth - 1] = state.stack[-1]
-                state.stack[-1] = temp
+                state.stack_swap(depth)
+
             elif const.opcode.LOG0 <= op <= const.opcode.LOG4:
                 '''
                 永久记录一个函数签名+参数在区块链上
@@ -508,19 +521,19 @@ class SymExecEngine:
                 # LOG0(memory[ost:ost+len-1])
                 # LOG1(memory[ost:ost+len-1], topic0, topic1)
                 depth = op - const.opcode.LOG0
-                dstost, mlen = (state.stack.pop(), state.stack.pop())
-                topics = [state.stack.pop() for _ in range(depth)]
+                dstost, mlen = (state.stack_pop(), state.stack_pop())
+                topics = [state.stack_pop() for _ in range(depth)]
             elif op == const.opcode.SHA3:# TODO:
                 raise NotImplementedError
 
                 fos = state.find_one_solution
 
-                s0 = state.stack.pop()
-                s1 = state.stack.pop()
+                s0 = state.stack_pop()
+                s1 = state.stack_pop()
 
                 start, length = fos(s0), fos(s1)
                 memory = state.memory.read(start, length)# TODO:
-                state.stack.push(Sha3(memory))# TODO:
+                state.stack_push(Sha3(memory))# TODO:
 
             elif op == const.opcode.STOP:
                 # halt execution
@@ -532,12 +545,12 @@ class SymExecEngine:
 
             elif op == const.opcode.CALLDATALOAD:
                 # TODO： reconstruct
-                index = state.stack.pop()
+                index = state.stack_pop()
 
                 if index.concrete:
                     
                     if index.concrete_value == 0 : # signature
-                        state.stack.push(
+                        state.stack_push(
                             txn.msg.signature
                         )
 
@@ -547,7 +560,7 @@ class SymExecEngine:
                         i = v // 32
 
                         logger.debug(f"push {txn.msg[i]}")
-                        state.stack.push(
+                        state.stack_push(
                             txn.msg[i]
                         )
                     
@@ -558,7 +571,7 @@ class SymExecEngine:
                     try:
                         index_sol = state.find_one_solution(index)
                     except MultipleSolutionsError:
-                        state.stack.push(index)  # restore the stack
+                        state.stack_push(index)  # restore the stack
                         # TODO: maybe use Calldata class be batter?
                         CALLDATALOAD_INDEX_FUZZ = Todo()
                         # self.add_for_fuzz(state, index, CALLDATALOAD_INDEX_FUZZ)
@@ -566,19 +579,19 @@ class SymExecEngine:
                         return False
                     
                     raise NotImplementedError
-                    state.stack.push(state.env.calldata.read(index_sol, 32))
+                    state.stack_push(state.env.calldata.read(index_sol, 32))
 
             elif op == const.opcode.CALLDATASIZE:
-                state.stack.push(txn.msg.len)
+                state.stack_push(txn.msg.len)
                 
             elif op == const.opcode.CALLDATACOPY:
                 # dstOst, ost, len
                 # mem[dstOst:dstOst+len-1] := msg.data[ost:ost+len-1]
                 old_state = state.clone()
                 dstost, ost, size = (
-                    state.stack.pop(),
-                    state.stack.pop(),
-                    state.stack.pop(),
+                    state.stack_pop(),
+                    state.stack_pop(),
+                    state.stack_pop(),
                 )
                 fos: Callable = state.find_one_solution
 
@@ -590,31 +603,43 @@ class SymExecEngine:
                     # TODO: 
                     self.add_for_fuzzing(old_state, size, CALLDATACOPY_SIZE_FUZZ)
                     return False
-                raise NotImplementedError
-                state.memory.copy_from(state.env.calldata, dstost, ost, size)
+                
+                assert size == 32 # TODO: check 也许能把32改成循环
+                assert (ost - 4) % 32 == 0
+
+                msg_idx = (ost - 4) // 32
+                msg = txn.msg[msg_idx]
+
+                assert msg.size() == 256
+
+                state.memory.write(
+                    dstost, size, msg
+                )
+
+                # state.memory.copy_from(state.env.calldata, dstost, ost, size)
             elif op == const.opcode.CODESIZE:
-                state.stack.push(bvv(len(self.sb.instructions)))
+                state.stack_push(bvv(len(self.sb.instructions)))
             elif op == const.opcode.EXTCODESIZE:
                 raise NotImplementedError
-                addr = state.stack.pop()
+                addr = state.stack_pop()
                 # TODO:
                 if (addr == state.env.address).is_true():
-                    state.stack.push(bvv(len(self.code)))
+                    state.stack_push(bvv(len(self.code)))
                 else:
                     # TODO: Improve that... It's clearly not constraining enough.
-                    state.stack.push(claripy.BVS("EXTCODESIZE[%s]" % addr, 256))
+                    state.stack_push(claripy.BVS("EXTCODESIZE[%s]" % addr, 256))
 
             elif op == const.opcode.EXTCODECOPY:
                 # addr, dstOst, ost, len
                 # mem[dstOst:dstOst+len-1] := addr.code[ost:ost+len-1]
                 raise NotImplementedError
                 old_state = state.clone()
-                addr = state.stack.pop()
+                addr = state.stack_pop()
 
-                mem_start  = state.find_one_solution(state.stack.pop())
-                code_start = state.find_one_solution(state.stack.pop())
+                mem_start  = state.find_one_solution(state.stack_pop())
+                code_start = state.find_one_solution(state.stack_pop())
 
-                size = state.stack.pop()
+                size = state.stack_pop()
                 try:
                     size = state.find_one_solution(size)
                 except MultipleSolutionsError:
@@ -634,7 +659,7 @@ class SymExecEngine:
                 # mem[dstOst:dstOst+len-1] := this.code[ost:ost+len-1]
                 fos: Callable = state.find_one_solution
                 dst_ost, ost, size = [
-                    fos(state.stack.pop()) for _ in range(3)
+                    fos(state.stack_pop()) for _ in range(3)
                 ]
                 # assert size % 32 == 0, logger.critical("size = %#x" % (size))
                 # TODO: follow
@@ -653,25 +678,37 @@ class SymExecEngine:
                         state.memory.write(mem_start + i, 1, claripy.BVV(0, 8))
 
             elif op == const.opcode.MLOAD:
-                index = state.find_one_solution(state.stack.pop())
-                state.stack.push(state.memory.read(index, 32))# TODO
+                idx = state.stack_pop()
+
+                if idx.symbolic:
+                    raise NotImplementedError
+                    
+                state.stack_push(
+                    state.memory.read(idx.concrete_value, 32)
+                )# TODO
+
             elif op == const.opcode.MSTORE:
-                index, value = state.find_one_solution(state.stack.pop()), state.stack.pop()
-                logger.debug(f"MSTORE : mem[{index}] = {value}")
-                state.memory.write(index, 32, value)# TODO
+                idx, value = state.stack_pop(), state.stack_pop()
+
+                if idx.symbolic:
+                    raise NotImplementedError
+                    
+                logger.debug(f"MSTORE : mem[{idx}] = {value}")
+                state.memory.write(idx.concrete_value, 32, value)# TODO
+                
             elif op == const.opcode.MSTORE8:
                 raise NotImplementedError
-                index, value = state.find_one_solution(state.stack.pop()), state.stack.pop()
+                index, value = state.find_one_solution(state.stack_pop()), state.stack_pop()
                 state.memory.write(index, 1, value[7:0])# TODO
             elif op == const.opcode.MSIZE:
-                state.stack.push(bvv(state.memory.size()))# TODO
+                state.stack_push(bvv(state.memory.size()))# TODO
 
             elif op == const.opcode.SLOAD:# stack.push(storage[key])
 
-                key = state.stack.pop()
+                key = state.stack_pop()
                 
                 if key.concrete:
-                    state.stack.push(
+                    state.stack_push(
                         state.storage[key]
                     )
                 else:
@@ -683,7 +720,7 @@ class SymExecEngine:
                 #     if state.solver.satisfiable(extra_constraints=read_from_written):
                 #         new_state = state.clone()
                 #         new_state.solver.add(read_from_written)# 如果可以对一个地方写两次 就创建一个新状态 让 w_key == key
-                #         new_state.stack.push(w_value)
+                #         new_state.stack_push(w_value)
                 #         self.add_branch(new_state)
                 #     state.solver.add(w_key != key)# 老状态没法eval出 w_key == key
                 # # 满足从一个没读过的storage slot读
@@ -692,14 +729,14 @@ class SymExecEngine:
                 #     assert key not in state.storage_written # TODO:
                 #     if key not in state.storage_read:
                 #         state.storage_read[key] = claripy.BVS("storage[%s]" % key, 256)
-                #     state.stack.push(state.storage_read[key])
+                #     state.stack_push(state.storage_read[key])
                 #     self.add_branch(state)
                 # return
 
             elif op == const.opcode.SSTORE:
                 # write value to storage[key]
-                key = state.stack.pop()
-                value = state.stack.pop()
+                key = state.stack_pop()
+                value = state.stack_pop()
                 
                 if key.concrete:
                     state.storage[key] = value
@@ -729,7 +766,7 @@ class SymExecEngine:
 
                 # pylint:disable=unused-variable
                 gas, to_, value, meminstart, meminsz, memoutstart, memoutsz = (
-                    state.stack.pop() for _ in range(7)
+                    state.stack_pop() for _ in range(7)
                 )
 
                 # First possibility: the call fails
@@ -759,7 +796,7 @@ class SymExecEngine:
                         claripy.BVS("CALL_RETURN[%s]" % to_, memoutsz * 8),
                     )
 
-                state.stack.push(BVV1)
+                state.stack_push(BVV1)
                 self.add_branch(state)
                 return False
 
@@ -775,10 +812,8 @@ class SymExecEngine:
                   op : mem[retOst:retOst+retLen-1] := returndata
                 push : success
                 '''
-                state.pc += 1
-
                 gas, addr, argost, arglen, retost, retlen = (
-                    state.stack.pop() for _ in range(6)
+                    state.stack_pop() for _ in range(6)
                 )
 
                 assert argost.concrete and arglen.concrete
@@ -791,31 +826,35 @@ class SymExecEngine:
                             VulnTypes.DELEGATECALL,
                             state
                         )
+
+                        state.pc += 1
                         return
                     else:
                         raise RuntimeError("symbolic but not satisfiable?")
                 
                 # NOTE: assume delegatecall must success but not write the memory
-                state.stack.push(BVV1)
+                state.stack_push(BVV1)
 
                 state.calls.append(
                     (gas, addr, argost, arglen, retost, retlen)
                 )
 
+                state.pc += 1
+
             elif op == const.opcode.RETURNDATASIZE:# TODO:
                 # ref: https://eips.ethereum.org/EIPS/eip-211
                 # 就是一次call后返回的data的size
                 # raise NotImplementedError
-                state.stack.push(claripy.BVS("RETURNDATASIZE", 256))# TODO: 也许需要与CALLDATA保持一致？
+                state.stack_push(claripy.BVS("RETURNDATASIZE", 256))# TODO: 也许需要与CALLDATA保持一致？
 
             elif op == const.opcode.RETURNDATACOPY:
                 # TODO:
                 raise NotImplementedError
                 old_state = state.clone()
-                mem_start_position = state.find_one_solution(state.stack.pop())
-                returndata_start_position = state.find_one_solution(state.stack.pop())
+                mem_start_position = state.find_one_solution(state.stack_pop())
+                returndata_start_position = state.find_one_solution(state.stack_pop())
 
-                size = state.stack.pop()
+                size = state.stack_pop()
                 try:
                     size = solution(size)
                 except MultipleSolutionsError:
@@ -828,7 +867,7 @@ class SymExecEngine:
 
             elif op == const.opcode.SELFDESTRUCT:
                 
-                addr = state.stack.pop()
+                addr = state.stack_pop()
                 
                 if addr.symbolic:
                     constraint = [addr == ATTACK_ACCOUNT_ADDRESS]
@@ -846,9 +885,6 @@ class SymExecEngine:
                 return True
 
             elif op == const.opcode.REVERT:
-                # if state.pc == 0xd:
-                    # import pdb; pdb.set_trace()
-                # raise NotImplementedError
                 return False
 
             else:

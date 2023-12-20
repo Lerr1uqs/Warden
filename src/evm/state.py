@@ -1,5 +1,6 @@
 from utils import *
 from .importer import *
+from evm.stack import Stack
 from evm.contract import Contract
 
 import copy
@@ -37,12 +38,14 @@ class State:
         return (
             "State(\n"
             "selfdestruct_to = %s\n"
+            "pc = %x\n"
             "calls = %s\n"
             "storage = %s\n"
             "solver = %s\n"
             ")"
         ) % (
             self.selfdestruct_to,
+            self.pc,
             self.calls,
             self.storage,
             self.solver,
@@ -85,10 +88,19 @@ class State:
         # l.append(x)
         return hash(tuple(l))
 
-    def stack_push(self, x):
+    def stack_push(self, x: BV):
         if len(self.stack) >= 1024:
             raise Exception("Stack overflow") # NOTE
-        self.stack.push(x)
+        self.stack.push(self, x)
+    
+    def stack_dup(self, n: int) -> None:
+        self.stack.dup(n)
+
+    def stack_swap(self, n: int) -> None:
+        self.stack.swap(n)
+        
+    def stack_pop(self, n=1) -> Union[List[BV], BV]:
+        return self.stack.pop(n)
 
     def clone(self):
         """Make a shallow copy of the current environment. Needs to be fast."""

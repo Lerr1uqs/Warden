@@ -1,5 +1,4 @@
 from utils import *
-from evm.state import State
 from disassembler import SolidityBinary
 import copy
 
@@ -13,7 +12,7 @@ class Stack:
     def __init__(self) -> None:
         # self.stack: List[T] = []
         self.stack: List[BV] = []
-        self._debug_stack: List[BV] = []
+        self._debug_stack: List[str] = []
 
     def __getitem__(self, idx: int) -> BV:
         
@@ -42,6 +41,24 @@ class Stack:
 
         return "\n".join(s)
 
+    def dup(self, n: int) -> None:
+        dup = self.stack[-n]
+        dbg = self._debug_stack[-n]
+
+        self.stack.append(dup)
+        self._debug_stack.append(dbg)
+    
+    def swap(self, n: int) -> None:
+        '''
+        swap top element with (n+1)-depth element
+        '''
+        tmp = self.stack[-n-1]
+        self.stack[-n-1] = self.stack[-1]
+        self.stack[-1] = tmp
+
+        tmp = self._debug_stack[-n-1]
+        self._debug_stack[-n-1] = self._debug_stack[-1]
+        self._debug_stack[-1] = tmp
 
     def pop(self, n=1) -> Union[BV, List[BV]]:
         '''
@@ -50,6 +67,7 @@ class Stack:
         if n == 1:
             assert len(self.stack) > 0
             ret = self.stack.pop()
+            self._debug_stack.pop()
             return ret
         
         ret = [self.stack.pop() for _ in range(n)] 
@@ -57,16 +75,17 @@ class Stack:
 
         return ret
     
-    def push(self, s: State, e: Union[BV, Integral]) -> None:
+    # TODO: circular import State
+    def push(self, s, e: Union[BV, int]) -> None:
         if isinstance(e, BV):
             pass
-        elif isinstance(e, Integral):
+        elif isinstance(e, int):
             e = bvv(e)
         else:
             raise TypeError(f"push type: {type(e)}")
 
         self.stack.append(e)
-        self._debug_stack.append(str(SolidityBinary.instruction_at(s.pc)))
+        self._debug_stack.append(repr(SolidityBinary.instruction_at(s.pc)))
     
     def clone(self):
         return copy.deepcopy(self)

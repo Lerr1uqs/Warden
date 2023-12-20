@@ -9,7 +9,7 @@ Instruction = evmdasm.Instruction
 class SolidityBinary:
 
     rtcode: str = ""
-    instructions: List[evmdasm.Instruction]
+    instructions: List[evmdasm.Instruction] = []
 
     def __init__(self, artifact: Artifact) -> None:
         # with open(filename, 'r') as file:
@@ -25,7 +25,7 @@ class SolidityBinary:
 
         evmdis = evmdasm.EvmDisassembler()
 
-        self.instructions: List[evmdasm.Instruction] = list(evmdis.disassemble(self.rtcode))
+        SolidityBinary.instructions: List[evmdasm.Instruction] = list(evmdis.disassemble(self.rtcode))
         self.bytecode = unhexlify(self.rtcode)
         # logger.debug("\n" + "\n".join([str(i) for i in self.instructions]))
         # import pdb;pdb.set_trace()
@@ -38,7 +38,7 @@ class SolidityBinary:
             if i.address == addr:
                 return i
             
-        raise NotImplementedError("unreachable")
+        raise NotImplementedError(f"unreachable with {hex(addr)}")
         
     @property
     def end_addr(self) -> int:

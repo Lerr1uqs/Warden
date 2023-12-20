@@ -4,11 +4,13 @@ from evm.contract import Contract
 
 from typing import Dict
 import sys
+import os
 
 
 import subprocess as sp
 
 from loguru import logger
+os.system("echo '' > ./loguru.log")
 logger.remove()
 # logger.add(sys.stdout, level="INFO")
 logger.add("loguru.log")
