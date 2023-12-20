@@ -40,6 +40,7 @@ class SymExecEngine:
         '''
         fuzz a var and generate corresponding state for this variable
         '''
+        raise NotImplementedError
         logger.critical("add_for_fuzz")
         # TODO: sketchy fuzz strategy
         to_try = set()
@@ -71,6 +72,7 @@ class SymExecEngine:
         s.solver.simplify()
 
         # 对一个约束条件起两个分支 其中一个可能走不了
+        logger.debug(s.solver.constraints)
         if not s.solver.satisfiable():
             logger.warning(f"state can't satisfiable {s.solver.constraints}")
             return 
@@ -96,44 +98,54 @@ class SymExecEngine:
         )
         wt.start()
 
-        while not self.branch_queue.empty():
-            # NOTE: qsize only work in single-thread environment
-            from evm.state import STATE_COUNTER #TODO： 记录
-            logger.debug(f"self.branch_queue len is {self.branch_queue.qsize()}")
-            logger.debug(f"total states cound is is {STATE_COUNTER}")
-            self.observer.cur_state_count = self.branch_queue.qsize()
-            self.observer.total_state_count = STATE_COUNTER
+        try:
+            temp_flag = False
+            while not self.branch_queue.empty():
+                # NOTE: qsize only work in single-thread environment
+                from evm.state import STATE_COUNTER #TODO： 记录
+                logger.debug(f"self.branch_queue len is {self.branch_queue.qsize()}")
+                logger.debug(f"total states cound is is {STATE_COUNTER}")
+                self.observer.cur_state_count = self.branch_queue.qsize()
+                self.observer.total_state_count = STATE_COUNTER
 
-            depth: int; state: State
-            depth, state = self.branch_queue.get()
+                depth: int; state: State
+                depth, state = self.branch_queue.get()
 
-            state.depth += 1
-            
-            # TODO: temporary avoid circular traverse
-            if state.pc == 0:
-                logger.warning("circular detected")
-                continue
+                state.depth += 1
 
-            # logger.info("execute at pc: %#x with depth %i." % (state.pc, depth))
+                # TODO: temporary avoid circular traverse
+                if state.pc == 0:
+                    if temp_flag == False:
+                        temp_flag = True
+                    else:
+                        logger.warning("circular detected")
+                        continue
 
-            success = self.exec_branch(state, txn)
+                # logger.info("execute at pc: %#x with depth %i." % (state.pc, depth))
 
-            # success means copy a new state and not encounter any terminal instruction TODO:
-            # state.print_exec_trace()
-            if not success:
-                pass
-                # logger.info("execution failed")
+                success = self.exec_branch(state, txn)
 
-        for bug in VulnTypes:
-            if len(self.bugs[bug]) > 0:
-                logger.critical(f"found {bug}")
+                # success means copy a new state and not encounter any terminal instruction TODO:
+                # state.print_exec_trace()
+                if not success:
+                    pass
+                    # logger.info("execution failed")
 
-        self.observer.notify_statewindow_shutdown = True
-        wt.join()
-            
+            for bug in VulnTypes:
+                if len(self.bugs[bug]) > 0:
+                    logger.critical(f"found {bug}")
+
+        except Exception as e:
+            self.observer.notify_statewindow_shutdown = True
+            wt.join() # 一定要让join能把thread收回来 不然就没法中断了
+            raise e
+        finally:
+            self.observer.notify_statewindow_shutdown = True
+            wt.join()
+
     def exec_branch(self, state: State, txn: Transaction) -> bool:
         """Execute forward from a state, queuing new states if needed."""
-        logger.debug("Constraints: %s" % state.solver.constraints)
+        # logger.debug("Constraints: %s" % state.solver.constraints)
 
         while True:
             if state.pc > self.sb.end_addr:
@@ -152,7 +164,7 @@ class SymExecEngine:
 
             logger.debug("------- NEW STEP -------")
             # logger.debug("Memory: %s" % state.memory)
-            # logger.debug("\nStack: %s" % state.stack)
+            logger.debug("\nStack: %s" % state.stack)
             logger.debug("PC: %#x, op: %#x(%s)" % (state.pc, op, curinst.name))
 
             assert isinstance(op, numbers.Number)
@@ -301,6 +313,7 @@ class SymExecEngine:
                     claripy.If(claripy.SGT(s0, s1), BVV1, BVV0)
                 )
             elif op == const.opcode.SIGNEXTEND: # sign extend s1 from (s0+1) bytes to 32 bytes
+                raise NotImplementedError
                 # TODO: Use Claripy's SignExt that should do exactly that.
                 [s0, s1] = state.stack.pop(2)
                 # s0 is the number of bits. s1 the number we want to extend.
@@ -429,7 +442,6 @@ class SymExecEngine:
                     state_false = state.clone()
                     state_false.solver.add(cond == BVV0)# 为0的时候没法跳转
                     state_false.pc += 1
-                    
                     self.add_branch(state_false)
                     
                     state.solver.add(cond != BVV0)
@@ -529,6 +541,7 @@ class SymExecEngine:
                         assert v % 32 == 0, f"v = {v}"
                         i = v // 32
 
+                        logger.debug(f"push {txn.msg[i]}")
                         state.stack.push(
                             txn.msg[i]
                         )
@@ -577,6 +590,7 @@ class SymExecEngine:
             elif op == const.opcode.CODESIZE:
                 state.stack.push(bvv(len(self.sb.instructions)))
             elif op == const.opcode.EXTCODESIZE:
+                raise NotImplementedError
                 addr = state.stack.pop()
                 # TODO:
                 if (addr == state.env.address).is_true():
@@ -588,6 +602,7 @@ class SymExecEngine:
             elif op == const.opcode.EXTCODECOPY:
                 # addr, dstOst, ost, len
                 # mem[dstOst:dstOst+len-1] := addr.code[ost:ost+len-1]
+                raise NotImplementedError
                 old_state = state.clone()
                 addr = state.stack.pop()
 
@@ -637,6 +652,7 @@ class SymExecEngine:
                 state.stack.push(state.memory.read(index, 32))# TODO
             elif op == const.opcode.MSTORE:
                 index, value = state.find_one_solution(state.stack.pop()), state.stack.pop()
+                logger.debug(f"MSTORE : mem[{index}] = {value}")
                 state.memory.write(index, 32, value)# TODO
             elif op == const.opcode.MSTORE8:
                 raise NotImplementedError
@@ -808,7 +824,6 @@ class SymExecEngine:
             elif op == const.opcode.SELFDESTRUCT:
                 
                 addr = state.stack.pop()
-                logger.critical(addr)
                 
                 if addr.symbolic:
                     constraint = [addr == ATTACK_ACCOUNT_ADDRESS]

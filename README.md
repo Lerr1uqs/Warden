@@ -23,3 +23,6 @@ solc --opcodes --overwrite ./store.sol
 # TODO:
 - 使用deque
 - chop用来拆分BV
+- 为storage增加一个repr
+- 断点到SSTORE
+- 增加一个状态 如果pc很久没更新了说不定就是正在约束求解

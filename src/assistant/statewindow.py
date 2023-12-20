@@ -57,7 +57,7 @@ class StateWindow:
         while True:
             
             import os
-            os.system("clear")
+            # os.system("clear")
 
             result = pyfiglet.figlet_format("Warden", font="slant")
             result = "    " + "\n    ".join(result.split('\n'))

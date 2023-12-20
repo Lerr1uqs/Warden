@@ -26,6 +26,7 @@ bvv = lambda v : claripy.BVV(v, 256)
 
 BVV0 = claripy.BVV(0, 256)
 BVV1 = claripy.BVV(1, 256)
+BVV0_8 = claripy.BVV(0, 8)
 # BVV1 = bvv(1)
 BV = claripy.ast.BV
 

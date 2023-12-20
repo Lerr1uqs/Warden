@@ -97,13 +97,13 @@ class _Msg:
             if ftype == "address":
                 data32s[i] = claripy.BVS("input-addr", 256)
 
-            elif ftype == ["bytes", "array", "string"]:
+            elif ftype in ["bytes", "array", "string"]:
 
                 n = int.from_bytes(data32s[i], byteorder='big')
                 assert n % 32 == 0
                 
                 start_at_idx.append(
-                    n // 32, ftype
+                    (n // 32, ftype)
                 )
 
             # TODO: uint256??

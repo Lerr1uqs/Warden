@@ -1,0 +1,215 @@
+[33mcommit cbfdd77ee1142fdb7c5d753c76997d1fa49d7049[m[33m ([m[1;36mHEAD -> [m[1;32mmaster[m[33m)[m
+Author: Lerr1uqs <624299960@qq.com>
+Date:   Wed Dec 20 18:19:29 2023 +0800
+
+    remove BaseModel
+
+[33mcommit 01bc054c4b847795172c94376c641379a1c67437[m
+Author: Lerr1uqs <624299960@qq.com>
+Date:   Wed Dec 20 18:08:16 2023 +0800
+
+    remove unnecessary lib
+
+[33mcommit 5bcc5550f1e57ca352bad81d2e64c81528a91905[m[33m ([m[1;31morigin/master[m[33m)[m
+Author: Lerr1uqs <624299960@qq.com>
+Date:   Wed Dec 20 18:06:13 2023 +0800
+
+    add claripy script for testing
+
+[33mcommit 7b9dc7cf7ecc9fa3b87cab2a0f9e5a2f32719d85[m
+Author: Lerr1uqs <624299960@qq.com>
+Date:   Wed Dec 20 01:54:39 2023 +0800
+
+    added circular detect
+
+[33mcommit bae06620e77c7ede277d6efc619d1995fc14a55e[m
+Author: Lerr1uqs <624299960@qq.com>
+Date:   Wed Dec 20 01:51:26 2023 +0800
+
+    complete DELEGATECALL
+
+[33mcommit b7b938c72eb22e58cde72ad5289ab89b51e5a53a[m
+Author: Lerr1uqs <624299960@qq.com>
+Date:   Tue Dec 19 22:48:03 2023 +0800
+
+    adjust vuln collect from SEE to obs
+
+[33mcommit 32550ba0a7f644e904d2488fe08374cbb9db26da[m
+Author: Lerr1uqs <624299960@qq.com>
+Date:   Tue Dec 19 22:45:51 2023 +0800
+
+    complete colorful print
+
+[33mcommit 6a096523079751f00a2fc2353ee245bb3f3240d7[m
+Author: Lerr1uqs <624299960@qq.com>
+Date:   Tue Dec 19 20:26:11 2023 +0800
+
+    complete terminal output
+
+[33mcommit 435a79d607c589d598cf55fdb51c228128ea38d4[m
+Author: Lerr1uqs <624299960@qq.com>
+Date:   Tue Dec 19 20:15:03 2023 +0800
+
+    complete large part of StateWindow, create two-thread feature
+
+[33mcommit 2f849002416cf79682a178b243afbd3a0a0fbca0[m
+Author: Lerr1uqs <624299960@qq.com>
+Date:   Tue Dec 19 18:41:40 2023 +0800
+
+    add needed member for StateWindow
+
+[33mcommit 787d7e878634d25241f151e5aebb163da502def8[m
+Author: Lerr1uqs <624299960@qq.com>
+Date:   Tue Dec 19 18:36:57 2023 +0800
+
+    change bug to vuln
+
+[33mcommit 1ddf3bb261cd70ce97094c2d47cbbf1ce0a99f7b[m
+Author: Lerr1uqs <624299960@qq.com>
+Date:   Tue Dec 19 18:34:52 2023 +0800
+
+    add observer and state window, modify the storage and transaction class
+
+[33mcommit 8ce88248e2d5bfcf2493cccb14bb705d5e02a883[m
+Author: Lerr1uqs <624299960@qq.com>
+Date:   Tue Dec 19 16:00:59 2023 +0800
+
+    update import and DIV
+
+[33mcommit 9c0d8f79d343ebc62fcd67b21621026bf989ecdf[m
+Author: Lerr1uqs <624299960@qq.com>
+Date:   Tue Dec 19 03:50:46 2023 +0800
+
+    detected selfdestruct vuln
+
+[33mcommit e8df636ce0d1bc4ff6e4cbcbb7b85a207c62d0dc[m
+Author: Lerr1uqs <624299960@qq.com>
+Date:   Tue Dec 19 02:02:37 2023 +0800
+
+    fix the early exit bug
+
+[33mcommit 4eee9ff66027c55a25b4ddf6f032e382440819e8[m
+Author: Lerr1uqs <624299960@qq.com>
+Date:   Tue Dec 19 02:02:27 2023 +0800
+
+    fix the early exit bug
+
+[33mcommit 9ac9fabc9f3d90b13a71acde43591a86cc7691e4[m
+Author: Lerr1uqs <624299960@qq.com>
+Date:   Tue Dec 19 02:01:24 2023 +0800
+
+    fix early exit bug
+
+[33mcommit eb9122765cd3864612ce511e8da29c9500781d3b[m
+Author: Lerr1uqs <624299960@qq.com>
+Date:   Tue Dec 19 00:20:42 2023 +0800
+
+    fix the jump exception
+
+[33mcommit 6500a5715d61269cf7f7d238a7dd7b421d478080[m
+Author: Lerr1uqs <624299960@qq.com>
+Date:   Tue Dec 19 00:17:30 2023 +0800
+
+    fix the jump exception
+
+[33mcommit 88002ce55d92fd9e3f4ac2c635194884ebecd190[m
+Author: Lerr1uqs <624299960@qq.com>
+Date:   Tue Dec 19 00:13:25 2023 +0800
+
+    refine the jump exception
+
+[33mcommit 9a899634ae051f79e4e7a9022b4004dae4563b79[m
+Author: Lerr1uqs <624299960@qq.com>
+Date:   Tue Dec 19 00:12:25 2023 +0800
+
+    impl some instructions
+
+[33mcommit 6675529d7c86a6b2fa1b522bbecd55941fcea5e0[m
+Author: Lerr1uqs <624299960@qq.com>
+Date:   Mon Dec 18 18:03:32 2023 +0800
+
+    fine the compiler
+
+[33mcommit fde90986fc26f6579fea16a0ab7b3209f3f01f10[m
+Author: Lerr1uqs <624299960@qq.com>
+Date:   Mon Dec 18 17:46:28 2023 +0800
+
+    add abi parse
+
+[33mcommit 1e3a06df181a57c32cf547da0e22871346985119[m
+Author: Lerr1uqs <624299960@qq.com>
+Date:   Mon Dec 18 17:24:14 2023 +0800
+
+    remove artifacts
+
+[33mcommit 9adea28b6765adea30ad9a110324bd0e49c74786[m
+Author: Lerr1uqs <624299960@qq.com>
+Date:   Mon Dec 18 17:22:13 2023 +0800
+
+    add SPDX-License-
+
+[33mcommit e5b9a036c7dc2d1b3c90da83f8bd9d2d4289ea59[m
+Author: Lerr1uqs <624299960@qq.com>
+Date:   Mon Dec 18 17:21:10 2023 +0800
+
+    remove artifact
+
+[33mcommit a42fcdc1645b518ecfa059aa0b36e1edb4a21727[m
+Author: Lerr1uqs <624299960@qq.com>
+Date:   Mon Dec 18 17:19:17 2023 +0800
+
+    add compiler
+
+[33mcommit 58a0f27562732f11e25434f36d350644639f13cc[m
+Author: Lerr1uqs <624299960@qq.com>
+Date:   Sat Dec 16 03:13:53 2023 +0800
+
+    remove failed cfg
+
+[33mcommit 481f6a3fd346f800843b059b6e1805ddc5d56567[m
+Author: Lerr1uqs <624299960@qq.com>
+Date:   Sat Dec 16 03:13:32 2023 +0800
+
+    cfg build failed but I will do this self
+
+[33mcommit a1052f05cabd699c3333a23743340bcac8af8598[m
+Author: Lerr1uqs <624299960@qq.com>
+Date:   Sat Dec 16 02:06:11 2023 +0800
+
+    add some testcase sol files
+
+[33mcommit c55e7041a189193bc4f699e02dd74917db72a5b4[m
+Author: Lerr1uqs <624299960@qq.com>
+Date:   Thu Dec 7 18:11:49 2023 +0800
+
+    change static member to dynamic member in Memory class
+
+[33mcommit 16c09ee9307a3f476e024efbdd42addf703a3999[m
+Author: Lerr1uqs <624299960@qq.com>
+Date:   Wed Dec 6 23:55:17 2023 +0800
+
+    add pydantic for certein classes
+
+[33mcommit d67c4e9510494596b70b32a924781baf544be233[m
+Author: Lerr1uqs <624299960@qq.com>
+Date:   Tue Dec 5 15:21:32 2023 +0800
+
+    add TODOs in README.md
+
+[33mcommit dc7e969efd7f2a5aa836f0842f5693989892e283[m
+Author: Lerr1uqs <624299960@qq.com>
+Date:   Mon Dec 4 22:40:36 2023 +0800
+
+    update README.md
+
+[33mcommit 826617a9d3ab63e7830bbbd95063144033bda8be[m
+Author: Lerr1uqs <624299960@qq.comn>
+Date:   Mon Dec 4 20:49:01 2023 +0800
+
+    remove all pyc
+
+[33mcommit c0964987932721d4acd14216f57fd8eda8be5b87[m
+Author: Lerr1uqs <624299960@qq.comn>
+Date:   Mon Dec 4 20:46:20 2023 +0800
+
+    first

@@ -49,14 +49,18 @@ class Memory:
 
     def _inner_read(self, addr: int, size: int) -> BV:
         '''
+        size: granularity is byte
         return a 256-bits BV
         '''
         v = BVV0
         for i in range(size):
             v = v << 8
-            v += self._mem.get(addr + i, 0)
+            v = v & ~0xff
+            # assert self._mem.get(addr + i).length == 8, f"{self._mem.get(addr + i, 0).length}"
+            b = self._mem.get(addr + i, BVV0_8) # TODO: 这里读了未初始化的内存
+            v += b.zero_extend(256 - 8)
 
-        return v
+        return claripy.simplify(v)
 
     def _inner_write(self, addr: int, size: int, val: BV) -> None:
         '''
@@ -82,13 +86,18 @@ class Memory:
 
     
     def _read_one_word(self, addr: int) -> Union[CONCRETE, BV]:
+        '''
+        return 4-byte BV
+        '''
         assert addr % 2 == 0
-        assert self._mem.get(addr) is not None # NOTE: 应该没有人从未初始化的内存中读东西吧？
+        # TODO:???? 从未初始化的内存读吗
+        # assert self._mem.get(addr) is not None, f"get uninit mem at {hex(addr)}" # NOTE: 应该没有人从未初始化的内存中读东西吧？
 
-        return self._inner_read(addr, 4)
+        ret256 = self._inner_read(addr, 4)
+        return ret256[31:0]
     
     def _write_one_byte(self, addr: int, val: Union[CONCRETE, BV]) -> None:
-
+        raise DeprecationWarning
         if isinstance(val, BV):
             assert val.size() == 8
         else:
@@ -117,31 +126,59 @@ class Memory:
             v = v << 8 * 4
             e = self._read_one_word(addr + i * 32)
             assert isinstance(e, BV)
-            assert e.size() == 32
-            v = v & e
+            assert e.size() == 32, e.size()
+            v = v & e.zero_extend(256 - 32)
 
         # self._have_read.add(addr)
         return v
     
     # TODO: MSTORE8 ?????
-    # REMINDER: solidity can only use MSTORE to write 32-bits value but 
-    #           can read any bits from memory in other instruction
-    def write(self, addr: int, bits_size: int, val: Union[CONCRETE, BV]) -> None:
-        # CHECK: LOGIC
+    # NOTE: solidity can only use MSTORE to write 32-bytes value but 
+    #       can read any bits from memory in other instruction
+    # def write(self, addr: int, bits_size: int, val: Union[CONCRETE, BV]) -> None:
+    #     # CHECK: LOGIC
+    #     if isinstance(val, BV):
+    #         if val.size() != 32:
+    #             if val.concrete:
+    #                 val = claripy.BVV(val.concrete_value, 32)
+    #             else: # symbolic
+    #                 # REF: https://api.angr.io/projects/claripy/en/latest/api.html#claripy.ast.BV
+    #                 val = val[31:0] # rightmost 32-bits
+    #     elif isinstance(val, int):
+    #         val = claripy.BVV(val, 32)
+    #     else:
+    #         raise TypeError(type(val))
+
+    #     assert isinstance(val, BV)
+
+    #     assert bits_size % 8 == 0
+    #     self._inner_write(addr, bits_size // 8, val)
+
+    # NOTE: solidity can only use MSTORE to write 32-bytes value but 
+    #       can read any bits from memory in other instruction
+    def write(self, addr: int, bytes_size: int, val: Union[CONCRETE, BV]) -> None:
+        
+        assert bytes_size == 32
+
         if isinstance(val, BV):
-            if val.size() != 32:
-                if val.concrete:
-                    val = claripy.BVV(val.concrete_value, 32)
-                else: # symbolic
-                    # Ref: https://api.angr.io/projects/claripy/en/latest/api.html#claripy.ast.BV
-                    val = val[31:0] # rightmost 32-bits
+            assert val.length == 256
+            # if val.concrete:
+            #     val = claripy.BVV(val.concrete_value, 32)
+            # else: # symbolic
+            #     # REF: https://api.angr.io/projects/claripy/en/latest/api.html#claripy.ast.BV
+            #     val = val[31:0] # rightmost 32-bits
+        elif isinstance(val, int):
+            val = claripy.BVV(val, 256)
         else:
-            val = bvv(val)
+            raise TypeError(type(val))
 
-        assert isinstance(val, BV)
+        self._write256(addr, val)
 
-        assert bits_size % 8 == 0
-        self._inner_write(addr, bits_size // 8, val)
+    def _write256(self, addr: int, val: BV) -> None:
+        bvs = val.chop(8)
+        for i in range(32):
+            self._mem[addr] = bvs[i]
+
 
     # 增加 set get方法 假设是mem[ost:ost+64] 就拆分成两个32去读 先不考虑8bits
     ...
