@@ -1,5 +1,8 @@
 # introduction
 a simple demo solidity bytecode symbolic execute engine.
+develop for Graduation Project in NUAA.
+
+![](./assets/effect.png)
 # 查看汇编
 ```shell
 # squ @ squ-virtual-machine in ~/prac/warden [18:18:10] C:2
@@ -21,8 +24,10 @@ $ cat /home/squ/prac/soli-prac/contracts/ReentryProtected.bin | evmasm -d
 solc --opcodes --overwrite ./store.sol
 ```
 # TODO:
-- 使用deque
-- chop用来拆分BV
-- 为storage增加一个repr
-- 断点到SSTORE
-- 增加一个状态 如果pc很久没更新了说不定就是正在约束求解
+- 使用能够调度的queue
+- 更改环境 z3有问题
+- 增加一个状态显示 如果pc很久没更新了说不定就是正在约束求解
+- 调试模式
+- 降低耦合
+- 引入机制更改
+- 多函数序列调用 函数内部调用
