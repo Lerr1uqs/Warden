@@ -6,14 +6,13 @@ BV = claripy.ast.BV
 bvv = lambda v : claripy.BVV(v, 256)
 # NOTE: 内存的写入操作是找到freemem_pointer然后写4个字节过去 每一个slot还是32字节 所以这里只需要按地址编排写入位置即可 不需要管slot的索引了
 class Memory:
-# class Memory():
     '''
     memory的存储粒度是word 也就是4字节
     RETURN指令执行的时候是借助return mem[ost:ost+len-1]的 所以返回值一定会加载到内存中
     '''
 
-
-    def __init__(self) -> None:
+    # TODO: 检查逻辑 一个合约只需要初始化一次rtcode
+    def __init__(self, rtcode: Optional[bytes]=None) -> None:
         super().__init__()# 一定要先初始化pydantic的基类 不然很多东西都没注册
         # self._msize = 0
         # NOTE: 粒度为1byte
@@ -27,6 +26,9 @@ class Memory:
         self._have_written = set()# TODO:
 
         self._mem: Dict[int, BV] = {}
+        
+        if rtcode:
+            self.init_rt_bytecode(rtcode)
         
     def __hash__(self) -> int:# TODO:
         r = 0
@@ -47,6 +49,10 @@ class Memory:
     def extend(self, size: int):
         self._msize += size
 
+    def init_rt_bytecode(self, rtcode: bytes) -> None:
+        for i in range(len(rtcode)):
+            self._write_one_byte(i, claripy.BVV(rtcode[i], 8))
+        
     def _inner_read(self, addr: int, size: int) -> BV:
         '''
         size: granularity is byte
@@ -96,38 +102,41 @@ class Memory:
         ret256 = self._inner_read(addr, 4)
         return ret256[31:0]
     
-    def _write_one_byte(self, addr: int, val: Union[CONCRETE, BV]) -> None:
-        raise DeprecationWarning
-        if isinstance(val, BV):
-            assert val.size() == 8
-        else:
-            assert val <= 0xff
-            val = claripy.BVV(val, 8)
+    def _write_one_byte(self, addr: int, val: BV) -> None:
 
+        assert isinstance(val, BV)
+        assert isinstance(addr, int)
+        
+        assert val.length == 8
         self._mem[addr] = val
 
-    
+    def _read_one_byte(self, addr: int) -> BV:
+        assert isinstance(addr, int)
+        # 默认为0
+        return self._mem.get(addr, claripy.BVV(0, 8))
+
     # TODO: change it to byte width
-    def read(self, addr: int, bits_size: int) -> Union[CONCRETE, BV]:# TODO: type
+    # TODO: 重构 变成slot + byte更改的形式效率更高
+    def read(self, addr: int, bytes_size: int) -> Union[CONCRETE, BV]:# TODO: type
         '''
         size: bits-width
         '''
         assert isinstance(addr, int)
-        assert isinstance(bits_size, int)
+        assert isinstance(bytes_size, int)
         assert addr % 2 == 0
         assert self._mem.get(addr) is not None # NOTE: 应该没有人从未初始化的内存中读东西吧？
 
-        assert bits_size % 32 == 0
-        assert 0 <= bits_size and bits_size <= 0xff     # TODO: maybe?
+        assert bytes_size % 32 == 0
+        assert 0 <= bytes_size and bytes_size <= 0xff     # TODO: maybe?
         
         v = BVV0
         # TODO: simplify it
-        for i in range(bits_size // 8):
-            v = v << 8 * 4
-            e = self._read_one_word(addr + i * 32)
+        for i in range(bytes_size):
+            v = v << 8 
+            e = self._read_one_byte(addr + i)
             assert isinstance(e, BV)
-            assert e.size() == 32, e.size()
-            v = v & e.zero_extend(256 - 32)
+            assert e.size() == 8, repr(e.size())
+            v = v & e.zero_extend(256 - 8)
 
         # self._have_read.add(addr)
         return v
@@ -156,29 +165,36 @@ class Memory:
 
     # NOTE: solidity can only use MSTORE to write 32-bytes value but 
     #       can read any bits from memory in other instruction
-    def write(self, addr: int, bytes_size: int, val: Union[CONCRETE, BV]) -> None:
+    def write(self, addr: int, bytes_size: int, val: BV) -> None:
         
-        assert bytes_size == 32
+        if bytes_size == 32:
 
-        if isinstance(val, BV):
-            assert val.length == 256
-            # if val.concrete:
-            #     val = claripy.BVV(val.concrete_value, 32)
-            # else: # symbolic
-            #     # REF: https://api.angr.io/projects/claripy/en/latest/api.html#claripy.ast.BV
-            #     val = val[31:0] # rightmost 32-bits
-        elif isinstance(val, int):
-            val = claripy.BVV(val, 256)
+            if isinstance(val, BV):
+                assert val.length == 256
+                # if val.concrete:
+                #     val = claripy.BVV(val.concrete_value, 32)
+                # else: # symbolic
+                #     # REF: https://api.angr.io/projects/claripy/en/latest/api.html#claripy.ast.BV
+                #     val = val[31:0] # rightmost 32-bits
+            elif isinstance(val, int):
+                val = claripy.BVV(val, 256)
+            else:
+                raise TypeError(type(val))
+
+            self._write256(addr, val)
+        
         else:
-            raise TypeError(type(val))
+            assert isinstance(val, BV)
+            assert val.length == bytes_size
 
-        self._write256(addr, val)
+            bvs = val.chop(8)
+            for i in range(bytes_size):
+                self._write_one_byte(addr+i, bvs[i])
 
     def _write256(self, addr: int, val: BV) -> None:
         bvs = val.chop(8)
         for i in range(32):
-            self._mem[addr] = bvs[i]
-
+            self._mem[addr+i] = bvs[i]
 
     # 增加 set get方法 假设是mem[ost:ost+64] 就拆分成两个32去读 先不考虑8bits
     ...

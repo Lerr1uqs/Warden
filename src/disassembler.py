@@ -9,7 +9,8 @@ Instruction = evmdasm.Instruction
 class SolidityBinary:
 
     rtcode: str = ""
-    
+    instructions: List[evmdasm.Instruction]
+
     def __init__(self, artifact: Artifact) -> None:
         # with open(filename, 'r') as file:
             # bin = file.read()
@@ -30,9 +31,10 @@ class SolidityBinary:
         # import pdb;pdb.set_trace()
     
     # TODO: move all evmdasm.Instruction as new class
-    def instruction_at(self, addr: int) -> evmdasm.Instruction:
+    @classmethod
+    def instruction_at(cls, addr: int) -> evmdasm.Instruction:
         # TODO: opt here
-        for i in self.instructions:
+        for i in cls.instructions:
             if i.address == addr:
                 return i
             

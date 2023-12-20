@@ -164,8 +164,13 @@ class SymExecEngine:
 
             logger.debug("------- NEW STEP -------")
             # logger.debug("Memory: %s" % state.memory)
-            logger.debug("\nStack: %s" % state.stack)
             logger.debug("PC: %#x, op: %#x(%s)" % (state.pc, op, curinst.name))
+            logger.debug("\nStorage: %s\n" % state.storage)
+            logger.debug("\nStack: %s" % state.stack)
+
+            if len(state.stack) > 0 and state.stack[-1].symbolic and "input-uint256_3" in str(state.stack[-1]) and curinst.name == "SSTORE":
+                self.observer.notify_statewindow_shutdown = True
+                import pdb;pdb.set_trace()
 
             assert isinstance(op, numbers.Number)
             assert all(

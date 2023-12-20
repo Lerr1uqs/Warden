@@ -1,4 +1,6 @@
 from utils import *
+from evm.state import State
+from disassembler import SolidityBinary
 import copy
 
 BV = claripy.ast.BV
@@ -11,6 +13,7 @@ class Stack:
     def __init__(self) -> None:
         # self.stack: List[T] = []
         self.stack: List[BV] = []
+        self._debug_stack: List[BV] = []
 
     def __getitem__(self, idx: int) -> BV:
         
@@ -31,9 +34,9 @@ class Stack:
         i = end
         while i >= 0:
             if isinstance(self.stack[i], BV):
-                r = "%#2x %s" % (end - i, self.stack[i])
+                r = "%#2x %s <- %s" % (end - i, self.stack[i], self._debug_stack[i])
             else:
-                r = "%#2x %32x" % (end - i, self.stack[i])
+                r = "%#2x %32x <- %s" % (end - i, self.stack[i], self._debug_stack[i])
             s.append(r)
             i -= 1
 
@@ -50,9 +53,11 @@ class Stack:
             return ret
         
         ret = [self.stack.pop() for _ in range(n)] 
+        [self._debug_stack.pop() for _ in range(n)] 
+
         return ret
     
-    def push(self, e: Union[BV, Integral]) -> None:
+    def push(self, s: State, e: Union[BV, Integral]) -> None:
         if isinstance(e, BV):
             pass
         elif isinstance(e, Integral):
@@ -61,6 +66,7 @@ class Stack:
             raise TypeError(f"push type: {type(e)}")
 
         self.stack.append(e)
+        self._debug_stack.append(str(SolidityBinary.instruction_at(s.pc)))
     
     def clone(self):
         return copy.deepcopy(self)

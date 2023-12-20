@@ -15,7 +15,7 @@ class State:
         self.contract                 = con
         self.pc                       = 0
         self.stack                    = Stack()
-        self.memory                   = Memory()
+        self.memory                   = Memory(con.sb.rtcode)
         self.depth                    = 0
         self.storage                  = Storage(con.address)
         self.solver                   = claripy.Solver()
@@ -99,7 +99,7 @@ class State:
         # new_state.storage_written = self.storage_written.copy()
         # new_state.storage_read = self.storage_read.copy()
         new_state.storage         = self.storage.clone()
-        new_state.solver          = self.solver.branch()# TODO:
+        new_state.solver          = copy.deepcopy(self.solver)# TODO:
         new_state.calls           = self.calls[:]
         new_state.selfdestruct_to = self.selfdestruct_to
         new_state.depth           = self.depth

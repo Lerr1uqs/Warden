@@ -50,7 +50,7 @@ class StateWindow:
             sys.exit(0) # TODO:?
             return
     
-    _count_down = 8
+    _count_down = 1 # TODO: 之后调整到8 或者开启调试模式
 
     def _show_terminal(self, obs: Observer) -> None:
 
