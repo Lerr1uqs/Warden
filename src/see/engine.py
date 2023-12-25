@@ -216,43 +216,71 @@ class SymExecEngine:
                 # with shifts. And we need shifts to handle the solidity ABI
                 # for function selection.
                 [s0, s1] = state.stack_pop(2) # s0 / s1
-                try:
-                    s1 = state.find_one_solution(s1)  # pylint:disable=invalid-name 获得一个具体值
-                except SymbolicMultiSolutions:
+                
+                if s1.concrete:
+                    divisor = s1.concrete_value
 
-                    assert s1.symbolic
-                    # 有多个解 s1 是symbolic的
-                    state.solver.add(s1 != 0)
-                    state.stack_push(s0 // s1)
-                    # state.stack_push(claripy.If(s1 == 0, BVV0, s0 / s1))# 这里是不是可以抛出一个div zero 异常
-                else:
-                    if s1 == 0:
+                    if divisor == 0:
                         raise NotImplementedError("divide by zero")
-                    elif s1 == 1:
+
+                    elif divisor == 1:
                         state.stack_push(s0)
-                    elif s1 % 2 == 0:
-                        exp = int(math.log(s1, 2))
+
+                    elif divisor % 2 == 0:
+                        exp = int(math.log(divisor, 2))
                         state.stack_push(s0.LShR(exp))
+
                     else:
-                        raise NotImplementedError("奇数除法")
-                        state.stack_push(s0 // s1)
+                        raise NotImplementedError("unhandled divisor")
+
+                else:
+                    state.stack_push(
+                        s0 // s1
+                    )
+
+                # try:
+                #     s1 = state.find_one_solution(s1)  # pylint:disable=invalid-name 获得一个具体值
+                # except SymbolicMultiSolutions:
+
+                #     assert s1.symbolic
+                #     # 有多个解 s1 是symbolic的
+                #     state.solver.add(s1 != 0)
+                #     state.stack_push(s0 // s1)
+                #     # state.stack_push(claripy.If(s1 == 0, BVV0, s0 / s1))# 这里是不是可以抛出一个div zero 异常
+                # else:
+                #     if s1 == 0:
+                #         raise NotImplementedError("divide by zero")
+                #     elif s1 == 1:
+                #         state.stack_push(s0)
+                #     elif s1 % 2 == 0:
+                #         exp = int(math.log(s1, 2))
+                #         state.stack_push(s0.LShR(exp))
+                #     else:
+                #         raise NotImplementedError("奇数除法")
+                        # state.stack_push(s0 // s1)
             elif op == const.opcode.SDIV:
+                raise NotImplementedError
                 [s0, s1] = state.stack_pop(2)
-                try:
-                    s1 = state.find_one_solution(s1)
-                except MultipleSolutionsError:
-                    state.stack_push(claripy.If(s1 == 0, BVV0, s0.SDiv(s1))) # TODO: 除数为0
-                else:
-                    state.stack_push(BVV0 if s1 == 0 else s0.SDiv(s1))
+                
+                # try:
+                #     s1 = state.find_one_solution(s1)
+                # except MultipleSolutionsError:
+                #     state.stack_push(claripy.If(s1 == 0, BVV0, s0.SDiv(s1))) # TODO: 除数为0
+                # else:
+                #     state.stack_push(BVV0 if s1 == 0 else s0.SDiv(s1))
             elif op == const.opcode.MOD:
+                # s0 % s1
                 [s0, s1] = state.stack_pop(2)
-                try:
-                    s1 = state.find_one_solution(s1)
-                except MultipleSolutionsError:
-                    state.stack_push(claripy.If(s1 == 0, BVV0, s0 % s1)) # TODO: mod 0
+                if s1.concrete:
+                    mod = s1.concrete_value
+                    state.stack_push(
+                        s0 % mod
+                    )
                 else:
-                    state.stack_push(BVV0 if s1 == 0 else s0 % s1)
+                    raise NotImplementedError
+                
             elif op == const.opcode.SMOD:
+                raise NotImplementedError
                 [s0, s1] = state.stack_pop(2)
                 try:
                     s1 = state.find_one_solution(s1)
@@ -350,23 +378,37 @@ class SymExecEngine:
                 )
             elif op == const.opcode.AND:
                 [s0, s1] = state.stack_pop(2)
-                # fix for python10 claripy
-                state.stack_push(
-                    claripy.If(
-                        claripy.And((s0 != BVV0), (s1 != BVV0)), 
-                        BVV1, 
-                        BVV0
+                # TEMP: workaround for claripy error
+                # state.stack_push((s0[0] & s1[0]).zero_extend(255))
+                if s0.op == "If" and s1.op == "If":
+                    # a = claripy.If(s0, claripy.BVV(1, 1), claripy.BVV(0, 1))
+                    # b = claripy.If(s1, claripy.BVV(1, 1), claripy.BVV(0, 1))
+                    state.stack_push(
+                        claripy.If(
+                            claripy.And((s0 != BVV0), (s1 != BVV0)), 
+                            BVV1, 
+                            BVV0
+                        )
                     )
-                )
+                else:
+                    state.stack_push(s0 & s1)
+                # state.stack_push(
+                #     claripy.If(
+                #         claripy.And((s0 != BVV0), (s1 != BVV0)), 
+                #         BVV1, 
+                #         BVV0
+                #     )
+                # )
             elif op == const.opcode.OR:
                 [s0, s1] = state.stack_pop(2)
-                state.stack_push(
-                    claripy.If(
-                        claripy.Or((s0 != BVV0), (s1 != BVV0)), 
-                        BVV1, 
-                        BVV0
-                    )
-                )
+                state.stack_push(s0 | s1)
+                # state.stack_push(
+                #     claripy.If(
+                #         claripy.Or((s0 != BVV0), (s1 != BVV0)), 
+                #         BVV1, 
+                #         BVV0
+                #     )
+                # )
             elif op == const.opcode.XOR:
                 [s0, s1] = state.stack_pop(2)
                 state.stack_push(s0 ^ s1)
@@ -469,6 +511,8 @@ class SymExecEngine:
                     raise NotImplementedError("arbitrary jump")
 
                 elif cond.symbolic:
+
+                    logger.debug(f"fork at {hex(state.pc)}")
                     
                     state_false = state.clone()
                     state_false.solver.add(cond == BVV0)# 为0的时候没法跳转
@@ -834,7 +878,7 @@ class SymExecEngine:
                 # data = state.memory.read(argost.concrete, arglen.concrete * 8)
                 # NOTE: 无论data为什么 理论上都能进行攻击
                 if addr.symbolic:
-                    if state.solver.satisfiable(extra_constraints=[addr==ATTACK_ACCOUNT_ADDRESS]):
+                    if state.solver.satisfiable(extra_constraints=[addr == ATTACK_ACCOUNT_ADDRESS]):
                         self.observer.add_a_vuln(
                             VulnTypes.DELEGATECALL,
                             state
@@ -893,7 +937,9 @@ class SymExecEngine:
                         logger.critical("selfdestruct detect successfully")
 
                     else:
-                        raise NotImplementedError
+                        raise NotImplementedError(f"unevaluable constraints {state.solver.constraints} + {constraint}")
+                        # return True
+                # TODO: 0地址转账是ether frozen
                         
                 return True
 

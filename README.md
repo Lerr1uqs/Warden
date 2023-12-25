@@ -23,6 +23,12 @@ $ cat /home/squ/prac/soli-prac/contracts/ReentryProtected.bin | evmasm -d
 ```shell
 solc --opcodes --overwrite ./store.sol
 ```
+
+# 关闭内存限制
+```shell
+ulimit -c unlimited
+```
+
 # TODO:
 - 使用能够调度的queue
 - 更改环境 z3有问题
