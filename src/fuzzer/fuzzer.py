@@ -24,6 +24,7 @@ class Fuzzer:
         # TODO: 自动设置
         unsent_txn = self.con.functions[fname](TMPADDR, 0x0721, 0x0d00, b'\xff' * 32).build_transaction({
             "to": TMPADDR,
+            "gas": 123456
             # "from": TMPADDR,
             # "nonce": w3.eth.get_transaction_count(TMPADDR),
         })
