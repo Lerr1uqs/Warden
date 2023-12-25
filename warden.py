@@ -1,10 +1,11 @@
+import os
+import sys
+sys.path.append("./src")
+
+from typing import Dict
 from see import SymExecEngine
 from disassembler import SolidityBinary
 from evm.contract import Contract
-
-from typing import Dict
-import sys
-import os
 
 
 import subprocess as sp
