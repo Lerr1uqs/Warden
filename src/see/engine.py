@@ -350,10 +350,23 @@ class SymExecEngine:
                 )
             elif op == const.opcode.AND:
                 [s0, s1] = state.stack_pop(2)
-                state.stack_push(s0 & s1)
+                # fix for python10 claripy
+                state.stack_push(
+                    claripy.If(
+                        claripy.And((s0 != BVV0), (s1 != BVV0)), 
+                        BVV1, 
+                        BVV0
+                    )
+                )
             elif op == const.opcode.OR:
                 [s0, s1] = state.stack_pop(2)
-                state.stack_push(s0 | s1)
+                state.stack_push(
+                    claripy.If(
+                        claripy.Or((s0 != BVV0), (s1 != BVV0)), 
+                        BVV1, 
+                        BVV0
+                    )
+                )
             elif op == const.opcode.XOR:
                 [s0, s1] = state.stack_pop(2)
                 state.stack_push(s0 ^ s1)
