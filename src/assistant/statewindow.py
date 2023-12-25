@@ -50,14 +50,14 @@ class StateWindow:
             sys.exit(0) # TODO:?
             return
     
-    _count_down = 1 # TODO: 之后调整到8 或者开启调试模式
+    _count_down = 8 # TODO: 之后调整到8 或者开启调试模式
 
     def _show_terminal(self, obs: Observer) -> None:
 
         while True:
             
             import os
-            # os.system("clear")
+            os.system("clear")
 
             result = pyfiglet.figlet_format("Warden", font="slant")
             result = "    " + "\n    ".join(result.split('\n'))
