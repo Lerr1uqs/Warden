@@ -923,7 +923,7 @@ class SymExecEngine:
                 )
 
             elif op == const.opcode.SELFDESTRUCT:
-                
+                logger.critical("enter selfdestruct detect")
                 addr = state.stack_pop()
                 
                 if addr.symbolic:
