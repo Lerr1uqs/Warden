@@ -6,6 +6,175 @@ BV = claripy.ast.BV
 bvv = lambda v : claripy.BVV(v, 256)
 # NOTE: 内存的写入操作是找到freemem_pointer然后写4个字节过去 每一个slot还是32字节 所以这里只需要按地址编排写入位置即可 不需要管slot的索引了
 class Memory:
+    def __init__(self) -> None:
+        self._mem: Dict[int, BV] = {} # mem[slot idx] -> 32-byte slot
+        self._mem: List[BV] = [claripy.BVV(0, 8)] * 1024 # TEMP:
+        # TODO: add extend operation
+    
+    def __hash__(self) -> int:# TODO:
+        r = 0
+        for v in self._mem:
+            r ^= hash(v)
+        return r
+
+    # TODO: repr as slot
+    def __repr__(self) -> str:
+        r = "\n"
+        for k, v in self._mem:
+            r += f"{k:03x} {v}\n"
+        return r
+
+    def clone(self):
+        new_memory = Memory()
+        new_memory._mem = copy.deepcopy(self._mem)
+        return new_memory
+
+    def _read_one_byte(self, addr: int) -> BV:
+
+        if not isinstance(addr, int):
+            raise TypeError(f"addr must be int but found {type(addr)}")
+        
+        return self._mem[addr]
+    
+    def _write_one_byte(self, addr: int, v: BV) -> None:
+
+        if not isinstance(addr, int):
+            raise TypeError(f"addr must be int but found {type(addr)}")
+
+        if not isinstance(v, BV):
+            raise TypeError(f"v must be BV but found {type(v)}")
+        
+        if v.length != 8:
+            raise TypeError(f"length not match {v.length}")
+
+        self._mem[addr] = v
+        
+
+    # def _read_slot(self, idx: int) -> BV:
+
+    #     if not isinstance(idx, int):
+    #         raise TypeError(f"idx must be int but found {type(idx)}")
+        
+    #     return self._mem.get(idx, claripy.BVV(0, 256))
+
+    # def _write_slot(self, idx: int, slot: BV) -> None:
+
+    #     if not isinstance(idx, int):
+    #         raise TypeError(f"idx must be int but found {type(idx)}")
+
+    #     if not isinstance(slot, BV):
+    #         raise TypeError(f"slot must be BV but found {type(slot)}")
+        
+    #     if slot.length != 256:
+    #         raise TypeError(f"wrong BV length {slot.length}")
+
+    #     self._mem[idx] = slot
+
+
+    def write(self, addr: int, bytes_size: int, value: BV) -> None:
+        '''
+        write bytes_size length value at given address.
+        '''
+        # sanity check: avoid confusing concrate and concrate_value in upper caller
+        if not isinstance(addr, int):
+            raise TypeError(f"addr must be int but found {type(addr)}")
+
+        if not isinstance(value, BV):
+            raise TypeError(f"value must be BV but found {type(value)}")
+
+        if bytes_size * 8 != value.length: # TODO: 确认一下
+            raise TypeError(f"length not match!")
+
+        chops = value.chop(8)
+        for i in range(len(chops)):
+            self._write_one_byte(addr + i, chops[i])
+
+        # if bytes_size == 32:
+        #     self._write_slot(addr // 0x20, value)
+        
+        # else:
+
+        #     import math
+
+        #     r = math.floor(bytes_size / 32) # 向下取整
+        #     s = addr // 0x20
+        #     l = value.length
+
+        #     for i in range(s, s + r):
+        #         slot = value[l - 1 - i * 256: l - 256 - i * 256] # truncate 256bit from start to end
+        #         self._write_slot(i, slot)
+
+        #     if bytes_size % 32 != 0:
+        #         # means remnant
+        #         remnants: List[BV] = value[l - 1 - r * 256: 0].chop(8)
+        #         units   : List[BV] = self._read_slot(s + r).chop(8)
+
+        #         for i in range(len(remnants)):
+        #             units[i] = remnants[i]
+
+        #         # merge a list of BV8 to BV256
+        #         slot = claripy.BVV(0, 256)
+
+        #         for i in range(32):
+        #             slot <<= 8
+        #             slot &= ~0xff
+        #             slot += units[i].zero_extend(256 - 8)
+                
+        #         self._write_slot(s + r, claripy.simplify(slot))
+
+    def read(self, addr: int, bytes_size: int) -> BV:# TODO: type
+        '''
+        read a slot from given address
+        '''
+        if not isinstance(addr, int):
+            raise TypeError(f"addr must be int but found {type(addr)}")
+        
+        '''
+        notes that addr can start from anywhere
+        000005c1: PUSH1 0x11
+        000005c3: PUSH1 0x4
+        000005c5: MSTORE
+        '''
+
+        res = claripy.BVV(0, bytes_size * 8)
+
+        for i in range(bytes_size):
+            res <<= 8
+            bytebv = self._read_one_byte(addr + i)
+            res += bytebv.zero_extend(res.length - 8)
+
+        return claripy.simplify(res)
+
+        # if bytes_size != 32:
+        #     import math
+
+        #     res = claripy.BVV(0, bytes_size * 8)
+
+        #     r = math.floor(bytes_size / 32) # 向下取整
+        #     s = addr // 0x20
+
+        #     for i in range(s, s + r):
+        #         res <<= 256
+        #         slot = self._read_slot(i)
+        #         res += slot.zero_extend(res.length - 256)
+
+
+        #     if bytes_size % 32 != 0:
+        #         # means remnant
+        #         m = bytes_size % 32 
+        #         slot = self._read_slot(s + r) 
+        #         remnant = slot[255: 255 - 8 * m + 1] # assume m = 1, then 255 254 253 252 251 250 249 248
+
+        #         res <<= remnant.length
+        #         res += slot.zero_extend(res.length - remnant.length)
+                
+        #     return claripy.simplify(res)
+                
+        # else:
+        #     return claripy.simplify(self._mem[addr // 32])
+
+@DeprecationWarning
+class _Memory:
     '''
     memory的存储粒度是word 也就是4字节
     RETURN指令执行的时候是借助return mem[ost:ost+len-1]的 所以返回值一定会加载到内存中

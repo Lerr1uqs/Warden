@@ -636,6 +636,7 @@ class SymExecEngine:
                 state.stack_push(txn.msg.len)
                 
             elif op == const.opcode.CALLDATACOPY:
+                # TODO: 移除 fos
                 # dstOst, ost, len
                 # mem[dstOst:dstOst+len-1] := msg.data[ost:ost+len-1]
                 old_state = state.clone()
@@ -744,7 +745,7 @@ class SymExecEngine:
                 if idx.symbolic:
                     raise NotImplementedError
                     
-                logger.debug(f"MSTORE : mem[{idx}] = {value}")
+                logger.debug(f"MSTORE : mem[{idx}:{idx}+32] = {value}")
                 state.memory.write(idx.concrete_value, 32, value)# TODO
                 
             elif op == const.opcode.MSTORE8:

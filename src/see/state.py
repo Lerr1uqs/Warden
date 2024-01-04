@@ -15,7 +15,7 @@ class State:
         self.contract                 = con
         self.pc                       = 0
         self.stack                    = Stack()
-        self.memory                   = Memory(con.sb.rtcode)
+        self.memory                   = Memory()
         self.depth                    = 0
         self.storage                  = Storage(con.address)
         self.solver                   = claripy.Solver()
