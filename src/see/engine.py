@@ -172,11 +172,6 @@ class SymExecEngine:
             logger.debug("\nStorage: %s\n" % state.storage)
             logger.debug("\nStack: %s" % state.stack)
 
-            # if len(state.stack) > 0 and state.stack[-1].symbolic and "input-uint256_3" in str(state.stack[-1]) and curinst.name == "SSTORE":
-            #     self.observer.notify_statewindow_shutdown = True
-            #     import pdb;pdb.set_trace()
-
-            assert isinstance(op, numbers.Number)
             assert all(
                 isinstance(i, claripy.ast.base.BV) for i in state.stack
             ), "The stack musty only contains claripy BV's"
@@ -190,11 +185,8 @@ class SymExecEngine:
                     import pdb; pdb.set_trace()
 
             # Trivial operations first
-            # TODO: sanity check
             if False:
-                ...
-            # if not self.code.is_valid_opcode(state.pc):
-                # raise Exception("Trying to execute PUSH data")
+                pass
             elif op == 254:  # INVALID opcode
                 # TODO: handle it
                 ...
