@@ -934,7 +934,6 @@ class SymExecEngine:
                         self.observer.add_a_vuln(
                             VulnTypes.SELFDESTRUCT, state
                         )
-                        state.selfdestruct_to = state.stack[-1] # TODO
                         logger.critical("selfdestruct detect successfully")
 
                     else:

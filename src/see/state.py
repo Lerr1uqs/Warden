@@ -19,7 +19,6 @@ class State:
         self.depth                    = 0
         self.storage                  = Storage(con.address)
         self.solver                   = claripy.Solver()
-        self.selfdestruct_to          = None
         self.calls: List[opcode.Call] = []
 
         # executed pc addr
@@ -36,14 +35,12 @@ class State:
     def __repr__(self) -> str:
         return (
             "State(\n"
-            "selfdestruct_to = %s\n"
             "pc = %x\n"
             "calls = %s\n"
             "storage = %s\n"
             "solver = %s\n"
             ")"
         ) % (
-            self.selfdestruct_to,
             self.pc,
             self.calls,
             self.storage,
@@ -66,7 +63,6 @@ class State:
             hash(self.pc),
             hash(self.memory),# TODO: 要不要内存呢？？
             hash(self.storage),
-            hash(self.selfdestruct_to),
         ]
         for i in self.stack:
             l.append(hash(i))
@@ -112,7 +108,6 @@ class State:
         new_state.storage         = self.storage.clone()
         new_state.solver          = copy.deepcopy(self.solver)# TODO:
         new_state.calls           = self.calls[:]
-        new_state.selfdestruct_to = self.selfdestruct_to
         new_state.depth           = self.depth
         new_state.exec_addrs      = copy.deepcopy(self.exec_addrs)
 
