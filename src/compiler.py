@@ -1,19 +1,18 @@
 '''
 solidity compiler, based on local solc 
 '''
-from pathlib import Path
-import os
 import subprocess
-import re
 import shutil
-
-from binascii import unhexlify
-
-from utils import *
+import json
+import os
 
 from collections import defaultdict
-import json
-from web3 import Web3
+from binascii    import unhexlify
+from pathlib     import Path
+from web3        import Web3
+from utils       import *
+
+
 
 class Artifact:
     def __init__(self, rtbc: str, initbc: str, json_obj: List[Dict]) -> None:

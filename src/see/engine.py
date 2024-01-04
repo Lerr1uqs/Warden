@@ -1,23 +1,25 @@
-# symbolic execute engine
-from utils import *
-from queue import PriorityQueue, Queue
-from fuzzer import Fuzzer
+'''
+    symbolic execute engine
+'''
 import numbers
 import const
 import math
 import pdb
 
-from vulns import VulnTypes
-from collections import defaultdict
-
-from evm.state import State
+from queue        import PriorityQueue, Queue
 from disassembler import SolidityBinary
-from evm.contract import Contract
-from evm.transaction import Transaction
-from assistant.observer import Observer
-from assistant.statewindow import StateWindow
-from threading import Thread
+from collections  import defaultdict
+from evm          import Transaction
+from assistant    import StateWindow
+from vulns        import VulnTypes
+from assistant    import Observer
+from evm          import Contract
 from rich.console import Console
+from fuzzer       import Fuzzer
+from threading    import Thread
+from evm          import State # TEMP: 
+from utils        import *
+
 console = Console()
 
 class SymExecEngine:

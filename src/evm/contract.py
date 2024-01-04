@@ -1,7 +1,7 @@
 from utils import *
 import secrets
 import json
-from evm.provider import provider
+from evm.web3provider import provider
 from disassembler import SolidityBinary
 # from web3 import Web3, EthereumTesterProvider
 

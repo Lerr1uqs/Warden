@@ -1,8 +1,9 @@
-from utils import *
-import const
 import evmdasm
+import const
+
 from binascii import (hexlify, unhexlify)
 from compiler import Artifact
+from utils    import *
 
 Instruction = evmdasm.Instruction
 

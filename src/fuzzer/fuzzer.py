@@ -1,7 +1,7 @@
+from evm   import Transaction
+from evm   import Contract
+from evm   import provider
 from utils import *
-from evm.transaction import Transaction# TODO: move it to evm __init__
-from evm.provider import provider
-from evm.contract import Contract
 
 TMPADDR = provider.eth.accounts[0]
 

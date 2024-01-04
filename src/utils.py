@@ -1,9 +1,10 @@
-# external
-from loguru import logger
-from typing import (Callable, Optional, TypeVar, List, Tuple, Type, Dict, Any, Union, Set, Generic, Sequence)
 import claripy
 import numbers
-CONCRETE = numbers.Number# TODO
+
+from typing import (Callable, Optional, TypeVar, List, Tuple, Type, Dict, Any, Union, Set, Generic, Sequence)
+from loguru import logger
+
+CONCRETE = numbers.Number# TEMP:
 # internal
 # from disassembler import (SolidityBinary)
 # from evm.contract import Contract
