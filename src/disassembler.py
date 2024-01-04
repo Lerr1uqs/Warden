@@ -10,29 +10,18 @@ Instruction = evmdasm.Instruction
 
 class SolidityBinary:
 
-    rtcode: str = ""
     instructions: List[Instruction] = []
-
+    # TODO: 这里也许只需要rtcode
     def __init__(self, artifact: Artifact) -> None:
-        # with open(filename, 'r') as file:
-            # bin = file.read()
-            # self.code = bin
-        self.artifact = artifact
-        self.rtcode = artifact.rtbc # TEMP: 
 
-        # TODO: remove it
-        # if bin.startswith("0x"):
-        #     bin = bin[2:]
-        # bin = unhexlify(bin)
+        self.artifact = artifact
+        self.rtcode = artifact.rtbc
 
         evmdis = evmdasm.EvmDisassembler()
 
         SolidityBinary.instructions: List[Instruction] = list(evmdis.disassemble(self.rtcode))
         self.bytecode = unhexlify(self.rtcode)
-        # logger.debug("\n" + "\n".join([str(i) for i in self.instructions]))
-        # import pdb;pdb.set_trace()
-    
-    # TODO: move all evmdasm.Instruction as new class
+
     _instruction_cache = {} # dedicated cache for `instruction_at` function
 
     @classmethod
@@ -54,13 +43,18 @@ class SolidityBinary:
             
         raise RuntimeError(f"Can't found instruction at pc: {hex(addr)}")
         
+    _end_instruction_address = None # dedicated cache for `end_addr` property
+
     @property
     def end_addr(self) -> int:
         '''
         find the last instruction's addr
         '''
-        # TODO: opt here
-        return max([i.address for i in self.instructions])
+        if self._end_instruction_address:
+            return self._end_instruction_address
+        
+        self._end_instruction_address = max([i.address for i in self.instructions])
+        return self._end_instruction_address
         
     def check_pc_jmp_valid(self, pc: int) -> bool:
 
