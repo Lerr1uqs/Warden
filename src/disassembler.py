@@ -64,16 +64,7 @@ class SolidityBinary:
         
     def check_pc_jmp_valid(self, pc: int) -> bool:
 
-        insts = self.instructions
         jumpdest = opcode.JUMPDEST
         
-        # TODO: pc2inst repeat with instruction_at
-        return pc <= self.end_addr and self.pc2inst(pc).opcode == jumpdest
+        return pc <= self.end_addr and self.instruction_at(pc).opcode == jumpdest
 
-    # TODO: opt here
-    def pc2inst(self, pc: int) -> Instruction:
-        for inst in self.instructions:
-            if pc >= inst.address and pc < inst.address + inst.size:
-                return inst
-            
-        raise RuntimeError(f"Can't found instruction at pc: {hex(pc)}")

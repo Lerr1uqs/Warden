@@ -158,7 +158,7 @@ class SymExecEngine:
             state.exec_addrs.append(state.pc)
             # need to setup a map in pc => inst or 
             # provide a method in sb for next_inst call
-            curinst = self.sb.pc2inst(state.pc)
+            curinst = self.sb.instruction_at(state.pc)
             # curinst = self.sb.instructions[state.pc]
             op = curinst.opcode
             self.tracer.append(
