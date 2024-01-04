@@ -167,7 +167,6 @@ class SymExecEngine:
             # self.coverage[state.pc] += 1
 
             logger.debug("------- NEW STEP -------")
-            # logger.debug("Memory: %s" % state.memory)
             logger.debug("PC: %#x, op: %#x(%s)" % (state.pc, op, curinst.name))
             logger.debug("\nStorage: %s\n" % state.storage)
             logger.debug("\nStack: %s" % state.stack)
