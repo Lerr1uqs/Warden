@@ -23,10 +23,10 @@ from utils        import *
 console = Console()
 
 class SymExecEngine:
-    def __init__(self, sb: SolidityBinary, con: Contract) -> None:
+    def __init__(self, con: Contract) -> None:
         # self.branch_queue = PriorityQueue() #TODO:
         self.branch_queue = Queue() 
-        self.sb = sb
+        self.sb = con.sb
         self.states_hash_seen = set()
         # add a init state
         self.contract = con # TODO:
@@ -36,7 +36,7 @@ class SymExecEngine:
         self.tracer = [] # for debug
         self.fuzz = Fuzzer(con)
         self.bugs: Dict[VulnTypes, List[State]] = defaultdict(lambda: []) # TODO: vuln catalogue
-        self.observer = Observer(sb.instructions)
+        self.observer = Observer(self.sb.instructions)
         # self.observer.notify_statewindow_shutdown = True # TODO: debug mode
     
     # TEMP:

@@ -109,6 +109,12 @@ class Artifact:
 
 class Compiler:
 
+    def contract_artifact(self, conname) -> Artifact:
+        '''
+        get a contract artifact by name
+        '''
+        return self[conname]
+
     def __getitem__(self, conname: str) -> Artifact:
         '''
         conname: contract name

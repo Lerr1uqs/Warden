@@ -1,6 +1,6 @@
 from .transaction  import Transaction
-from .contract     import Contract
 from .web3provider import provider
+from .contract     import Contract
 
 from .storage import Storage
 from .memory  import Memory
