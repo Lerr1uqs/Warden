@@ -948,6 +948,6 @@ class SymExecEngine:
 
             else:
                 # TODO:
-                raise Exception(state, "Unknown opcode %#x" % op)
+                raise RuntimeError(state, "Unknown opcode %#x" % op)
 
             state.pc += 1    

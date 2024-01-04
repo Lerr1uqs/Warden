@@ -1,8 +1,9 @@
+import unittest
 import evmdasm
-import const
 
-from binascii import (hexlify, unhexlify)
+from binascii  import (hexlify, unhexlify)
 from compiler import Artifact
+from const    import opcode
 from utils    import *
 
 Instruction = evmdasm.Instruction
@@ -10,7 +11,7 @@ Instruction = evmdasm.Instruction
 class SolidityBinary:
 
     rtcode: str = ""
-    instructions: List[evmdasm.Instruction] = []
+    instructions: List[Instruction] = []
 
     def __init__(self, artifact: Artifact) -> None:
         # with open(filename, 'r') as file:
@@ -26,20 +27,32 @@ class SolidityBinary:
 
         evmdis = evmdasm.EvmDisassembler()
 
-        SolidityBinary.instructions: List[evmdasm.Instruction] = list(evmdis.disassemble(self.rtcode))
+        SolidityBinary.instructions: List[Instruction] = list(evmdis.disassemble(self.rtcode))
         self.bytecode = unhexlify(self.rtcode)
         # logger.debug("\n" + "\n".join([str(i) for i in self.instructions]))
         # import pdb;pdb.set_trace()
     
     # TODO: move all evmdasm.Instruction as new class
+    _instruction_cache = {} # dedicated cache for `instruction_at` function
+
     @classmethod
-    def instruction_at(cls, addr: int) -> evmdasm.Instruction:
-        # TODO: opt here
+    def instruction_at(cls, addr: int) -> Instruction:
+        '''
+        found instruction at given address
+        '''
+
+        assert len(cls.instructions) != 0, "SolidityBinary isn't initialized"
+
+        cache = cls._instruction_cache.get(addr)
+        if cache is not None:
+            return cache 
+        
         for i in cls.instructions:
             if i.address == addr:
+                cls._instruction_cache[addr] = i
                 return i
             
-        raise NotImplementedError(f"unreachable with {hex(addr)}")
+        raise RuntimeError(f"Can't found instruction at pc: {hex(addr)}")
         
     @property
     def end_addr(self) -> int:
@@ -52,15 +65,15 @@ class SolidityBinary:
     def check_pc_jmp_valid(self, pc: int) -> bool:
 
         insts = self.instructions
-        jumpdest = const.opcode.JUMPDEST
+        jumpdest = opcode.JUMPDEST
         
         # TODO: pc2inst repeat with instruction_at
         return pc <= self.end_addr and self.pc2inst(pc).opcode == jumpdest
 
     # TODO: opt here
-    def pc2inst(self, pc: int) -> evmdasm.Instruction:
+    def pc2inst(self, pc: int) -> Instruction:
         for inst in self.instructions:
             if pc >= inst.address and pc < inst.address + inst.size:
                 return inst
             
-        raise NotImplementedError
+        raise RuntimeError(f"Can't found instruction at pc: {hex(pc)}")

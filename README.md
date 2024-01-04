@@ -29,6 +29,12 @@ solc --opcodes --overwrite ./store.sol
 ulimit -c unlimited
 ```
 
+# ut
+```shell
+nosetests tests
+```
+notes that test function name must starts with "test_"
+
 # TODO:
 - [ ] 使用能够调度的queue
 - [x] 更改环境 z3有问题

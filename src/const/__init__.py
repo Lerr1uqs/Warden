@@ -1,1 +1,1 @@
-import const.opcode as opcode  
+from . import opcode
