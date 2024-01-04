@@ -17,7 +17,7 @@ from evm          import Contract
 from rich.console import Console
 from fuzzer       import Fuzzer
 from threading    import Thread
-from evm          import State # TEMP: 
+from .state       import State # TEMP: 
 from utils        import *
 
 console = Console()
@@ -106,7 +106,7 @@ class SymExecEngine:
             temp_flag = False
             while not self.branch_queue.empty():
                 # NOTE: qsize only work in single-thread environment
-                from evm.state import STATE_COUNTER #TODO： 记录
+                from see.state import STATE_COUNTER #TODO： 记录
                 logger.debug(f"self.branch_queue len is {self.branch_queue.qsize()}")
                 logger.debug(f"total states cound is is {STATE_COUNTER}")
                 self.observer.cur_state_count = self.branch_queue.qsize()

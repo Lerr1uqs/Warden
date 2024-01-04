@@ -1,9 +1,8 @@
-from utils import *
-from .importer import *
-from evm.stack import Stack
-from evm.contract import Contract
-
 import copy
+
+from evm import Stack, Contract, opcode, Memory, Storage
+from utils import *
+
 BV = claripy.ast.BV
 
 STATE_COUNTER = 1

@@ -4,7 +4,7 @@ handle data to screen printer
 '''
 from vulns import VulnTypes
 from utils import *
-from evm.state import State
+from see.state import State
 from disassembler import Instruction
 from collections import defaultdict
 from copy import deepcopy
