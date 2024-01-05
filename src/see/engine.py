@@ -556,14 +556,14 @@ class SymExecEngine:
                     logger.debug(f"fork at {hex(state.pc)}")
                     
                     state_false = state.clone()
-                    state_false.solver.add(cond == BVV0)# 为0的时候没法跳转
+                    state_false.solver.add(cond == BVV0) # can't jump to dest if condition is zero
                     state_false.pc += 1
                     self.add_branch(state_false)
                     
                     state.solver.add(cond != BVV0)
                     state.pc = addr.concrete_value
                     if not self.sb.check_pc_jmp_valid(state.pc):
-                        raise Exception("Invalid jump (0x%x)" % (state.pc - 1)) # TODO:
+                        raise RuntimeError("Invalid jump (0x%x)" % (state.pc - 1)) # TODO:
 
                     self.add_branch(state)
 
