@@ -22,6 +22,11 @@ solver = Solver()
 c = If(a > 0, BVV(0xff, 256), BVV0)
 d = If(b < 0xff, BVV(0xff, 256), BVV0)
 e = (c ^ d)
+'''
+(Pdb++) type(e)
+<class 'claripy.ast.bv.BV'>
+'''
+import pdb;pdb.set_trace()
 print(e) # work
 e = (c | d)
 print(e) # work

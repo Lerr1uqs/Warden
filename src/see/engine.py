@@ -188,20 +188,31 @@ class SymExecEngine:
                 pass
             elif op == 254:  # INVALID opcode
                 # TODO: handle it
-                ...
+                # REF: https://eips.ethereum.org/EIPS/eip-141
+                #  Backwards Compatibility: This instruction was never used and therefore has no effect on past contracts.
+                # ...
                 # return False
                 # raise Exception("designed INVALID opcode")
+                raise NotImplementedError("INVALID")
+
             elif op == const.opcode.JUMPDEST:
                 pass
+
             elif op == const.opcode.ADD:
+
                 [s0, s1] = state.stack_pop(2)
                 state.stack_push(s0 + s1)
+                
             elif op == const.opcode.SUB:
+                
                 [s0, s1] = state.stack_pop(2)
                 state.stack_push(s0 - s1)
+                
             elif op == const.opcode.MUL:
+
                 [s0, s1] = state.stack_pop(2)
                 state.stack_push(s0 * s1)
+                
             elif op == const.opcode.DIV:
                 # TODO: 除数为0会导致revert
                 # We need to use claripy.LShR instead of a division if possible,
@@ -261,6 +272,7 @@ class SymExecEngine:
                 #     state.stack_push(claripy.If(s1 == 0, BVV0, s0.SDiv(s1))) # TODO: 除数为0
                 # else:
                 #     state.stack_push(BVV0 if s1 == 0 else s0.SDiv(s1))
+
             elif op == const.opcode.MOD:
                 # s0 % s1
                 [s0, s1] = state.stack_pop(2)
@@ -281,7 +293,9 @@ class SymExecEngine:
                     state.stack_push(claripy.If(s1 == 0, BVV0, s0.SMod(s1))) # TODO: mod 0
                 else:
                     state.stack_push(BVV0 if s1 == 0 else s0.SMod(s1))
+
             elif op == const.opcode.ADDMOD: # (a + b) % N
+                raise NotImplementedError
                 [s0, s1, s2] = state.stack_pop(3)
                 try:
                     s1 = state.find_one_solution(s1)
@@ -289,7 +303,9 @@ class SymExecEngine:
                     state.stack_push(claripy.If(s2 == 0, BVV0, (s0 + s1) % s2))
                 else:
                     state.stack_push(BVV0 if s2 == 0 else (s0 + s1) % s2)
+                    
             elif op == const.opcode.MULMOD:
+                raise NotImplementedError
                 [s0, s1, s2] = state.stack_pop(3)
                 try:
                     s1 = state.find_one_solution(s1)
@@ -297,18 +313,24 @@ class SymExecEngine:
                     state.stack_push(claripy.If(s2 == 0, BVV0, (s0 * s1) % s2))
                 else:
                     state.stack_push(BVV0 if s2 == 0 else (s0 * s1) % s2)
+
             elif op == const.opcode.SHL:
                 [shift, value] = state.stack_pop(2)
                 state.stack_push(value << shift)
+
             elif op == const.opcode.SHR:
                 [shift, value] = state.stack_pop(2)
                 state.stack_push(value.LShR(shift))
+
             elif op == const.opcode.SAR:
                 [shift, value] = state.stack_pop(2)
                 state.stack_push(claripy.RotateRight(value, shift))
+
             elif op == const.opcode.EXP: # a ** b
+
                 [base, exp] = state.stack_pop(2)
                 base_solu = state.find_one_solution(base)
+                
                 if base_solu == 2:
                     state.stack_push(1 << exp)
                 else:
@@ -321,26 +343,31 @@ class SymExecEngine:
                         return False
                     else:
                         state.stack_push(claripy.BVV(base_solu ** exp_solu, 256))
+
             elif op == const.opcode.LT: # a < b
                 [s0, s1] = state.stack_pop(2)
                 state.stack_push(
                     claripy.If(claripy.ULT(s0, s1), BVV1, BVV0)
                 )
+
             elif op == const.opcode.GT:
                 [s0, s1] = state.stack_pop(2)
                 state.stack_push(
                     claripy.If(claripy.UGT(s0, s1), BVV1, BVV0)
                 )
+
             elif op == const.opcode.SLT:
                 [s0, s1] = state.stack_pop(2)
                 state.stack_push(
                     claripy.If(claripy.SLT(s0, s1), BVV1, BVV0)
                 )
+
             elif op == const.opcode.SGT:
                 [s0, s1] = state.stack_pop(2)
                 state.stack_push(
                     claripy.If(claripy.SGT(s0, s1), BVV1, BVV0)
                 )
+                
             elif op == const.opcode.SIGNEXTEND: # sign extend s1 from (s0+1) bytes to 32 bytes
                 raise NotImplementedError
                 # TODO: Use Claripy's SignExt that should do exactly that.
@@ -360,15 +387,18 @@ class SymExecEngine:
                 else:
                     assert s0 == 32
                     state.stack_push(s1)
+
             elif op == const.opcode.EQ:
                 [s0, s1] = state.stack_pop(2)
                 state.stack_push(
                     claripy.If(s0 == s1, BVV1, BVV0)
                 )
+
             elif op == const.opcode.ISZERO:
                 state.stack_push(
                     claripy.If(state.stack_pop() == BVV0, BVV1, BVV0)
                 )
+                
             elif op == const.opcode.AND:
                 [s0, s1] = state.stack_pop(2)
                 # TEMP: workaround for claripy error
@@ -392,6 +422,7 @@ class SymExecEngine:
                 #         BVV0
                 #     )
                 # )
+
             elif op == const.opcode.OR:
                 [s0, s1] = state.stack_pop(2)
                 state.stack_push(s0 | s1)
@@ -405,8 +436,10 @@ class SymExecEngine:
             elif op == const.opcode.XOR:
                 [s0, s1] = state.stack_pop(2)
                 state.stack_push(s0 ^ s1)
+
             elif op == const.opcode.NOT:
                 state.stack_push(~state.stack_pop())
+                
             elif op == const.opcode.BYTE:
                 # ith byte of (u)int256 x, from the left
                 # i, x
@@ -418,20 +451,25 @@ class SymExecEngine:
 
             elif op == const.opcode.PC:
                 state.stack_push(bvv(state.pc))
+
             elif op == const.opcode.GAS:
                 # gasRemaining
                 # TODO:貌似不影响什么 随便给个值
                 # raise NotImplementedError
                 state.stack_push(claripy.BVV(10000000, 256))
+
             elif op == const.opcode.ADDRESS:
                 raise NotImplementedError
                 state.stack_push(state.env.address)
+
             elif op == const.opcode.CHAINID:
                 raise NotImplementedError
                 state.stack_push(state.env.chainid)
+
             elif op == const.opcode.SELFBALANCE:
                 raise NotImplementedError
                 state.stack_push(state.env.balance)
+
             elif op == const.opcode.BALANCE:
                 # addr.balance
                 raise NotImplementedError
@@ -441,17 +479,21 @@ class SymExecEngine:
                         state, "Can only query balance of the current contract for now"
                     )
                 state.stack_push(state.env.balance)
+
             elif op == const.opcode.ORIGIN:
                 raise NotImplementedError
                 state.stack_push(state.env.origin)
+
             elif op == const.opcode.CALLER:
                 raise NotImplementedError
                 state.stack_push(state.env.caller)
+
             elif op == const.opcode.CALLVALUE:
                 # raise NotImplementedError
                 # TODO: 没有fallback函数 如果有msg.value会导致revert
                 # state.stack_push(claripy.BVS(f"CALLVALUE[{state.pc}]", 256))# TODO: use Txn or Contract
                 state.stack_push(txn.value)
+
             elif op == const.opcode.BLOCKHASH:
                 raise NotImplementedError
                 block_num = state.stack_pop()
@@ -460,20 +502,26 @@ class SymExecEngine:
                         "blockhash[%s]" % block_num, 256
                     )
                 state.stack_push(state.env.block_hashes[block_num])
+
             elif op == const.opcode.TIMESTAMP:
                 raise NotImplementedError
                 state.stack_push(state.env.block_timestamp)
+
             elif op == const.opcode.NUMBER:
                 raise NotImplementedError
                 state.stack_push(state.env.block_number)
+
             elif op == const.opcode.COINBASE:
                 raise NotImplementedError
                 state.stack_push(state.env.coinbase)
+
             elif op == const.opcode.DIFFICULTY:
                 raise NotImplementedError
                 state.stack_push(state.env.difficulty)
+
             elif op == const.opcode.POP:
                 state.stack_pop()
+
             elif op == const.opcode.JUMP:
                 # $pc := dst
                 # TODO: check here arbitrary jump
@@ -751,7 +799,9 @@ class SymExecEngine:
                 raise NotImplementedError
                 index, value = state.find_one_solution(state.stack_pop()), state.stack_pop()
                 state.memory.write(index, 1, value[7:0])# TODO
+
             elif op == const.opcode.MSIZE:
+                raise NotImplementedError
                 state.stack_push(bvv(state.memory.size()))# TODO
 
             elif op == const.opcode.SLOAD:# stack.push(storage[key])
@@ -871,6 +921,7 @@ class SymExecEngine:
 
                 # data = state.memory.read(argost.concrete, arglen.concrete * 8)
                 # NOTE: 无论data为什么 理论上都能进行攻击
+                # TODO: data能够符号化也可以进行攻击 所以这里有两种检测模式
                 if addr.symbolic:
                     if state.solver.satisfiable(extra_constraints=[addr == ATTACK_ACCOUNT_ADDRESS]):
                         self.observer.add_a_vuln(

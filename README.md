@@ -46,3 +46,8 @@ notes that test function name must starts with "test_"
 - [ ] 捕获编译输出
 - [ ] 避免重复编译
 - [ ] argparse
+- [ ] 约束缓存
+- [ ] 弄清段错误的位置
+
+# 论文idea
+- [ ] 考虑求解的时机 没必要一直保持符号化约束 在某段事件之后可以将符号化转换为具体值
