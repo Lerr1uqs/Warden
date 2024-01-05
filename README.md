@@ -38,7 +38,7 @@ notes that test function name must starts with "test_"
 # TODO:
 - [ ] 使用能够调度的queue
 - [x] 更改环境 z3有问题
-- [ ] 增加一个状态显示 如果pc很久没更新了说不定就是正在约束求解
+- [x] 增加一个状态显示 如果pc很久没更新了说不定就是正在约束求解
 - [x] 调试模式
 - [x] 降低耦合
 - [x] 引入机制更改
@@ -49,6 +49,7 @@ notes that test function name must starts with "test_"
 - [ ] 约束缓存
 - [ ] 弄清段错误的位置
 - [ ] 死区基本块优化
+- [ ] 总用时
 
 # 论文idea
 - [ ] 考虑求解的时机 没必要一直保持符号化约束 在某段事件之后可以将符号化转换为具体值

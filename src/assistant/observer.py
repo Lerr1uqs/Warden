@@ -117,6 +117,7 @@ class Observer:
         )
 
     __cur_evaluating_constraint = "None"
+    __cur_evaluating_state = "Run Symbolic Engine..."
 
     @property
     def cur_evaluating_constraint(self):
@@ -127,7 +128,7 @@ class Observer:
 
         if not isinstance(constraint, str):
             raise TypeError
-        
+        Observer.__cur_evaluating_state = "Constraint Evaluating..."
         Observer.__cur_evaluating_constraint = constraint
     
     __per_constraint_eval_lapses = []
@@ -135,6 +136,11 @@ class Observer:
     def notify_constraint_eval_over(self, lapse: float) -> None:
         Observer.__per_constraint_eval_lapses.append(lapse)
         Observer.__cur_evaluating_constraint = "None"
+        Observer.__cur_evaluating_state = "Run Symbolic Engine..."
+
+    @property
+    def cur_evaluating_state(self) -> str:
+        return Observer.__cur_evaluating_state
 
     # notes: timing the evaluation is the role of StateWindow cuz it is independent thread
 

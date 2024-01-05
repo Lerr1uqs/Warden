@@ -39,6 +39,7 @@ class StateWindow:
         self.cur_evaluating_constraint = "None"
         self.average_constraint_eval_lapse = 0.00
         self.max_constraint_eval_lapse = 0.00
+        self.cur_evaluating_state = "None"
 
         self._vulns = {
             V.SELFDESTRUCT: colored("0", "green"),
@@ -95,6 +96,7 @@ class StateWindow:
                 f'current evaluating constraint : {self.cur_evaluating_constraint}\n'
                 f'evaluating constraint average lapse: {self.average_constraint_eval_lapse}\n'
                 f'evaluating constraint max lapse: {self.max_constraint_eval_lapse}\n'
+                f'current evaluating state: {self.cur_evaluating_state}\n'
             )
 
             time.sleep(0.5)
@@ -117,7 +119,7 @@ class StateWindow:
 
             self.average_constraint_eval_lapse = obs.average_constraint_eval_lapse
             self.max_constraint_eval_lapse = obs.max_constraint_eval_lapse
-
+            self.cur_evaluating_state = obs.cur_evaluating_state
 
             for v in V:
                 c = obs.vuln_count(v)
