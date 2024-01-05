@@ -30,7 +30,7 @@ class StateWindow:
         # fuzzing status
         self.current_fuzzing_func = None # TODO:
         # coverage
-        self.coverage_rate = 0.0 # TODO: query observer
+        self.coverage_rate = 0.0 # TODO: make it remain decimal point
         # vulns found
         self.total_vulns_count = 0
         # device status
