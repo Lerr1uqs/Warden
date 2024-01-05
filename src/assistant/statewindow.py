@@ -1,20 +1,22 @@
 '''
 state window for execution display in terminal 
 '''
-
-from assistant.observer import Observer
-import time
-from termcolor import colored
-from datetime import datetime 
-from vulns import VULN_DESC
-from vulns import VulnTypes as V
 import pyfiglet
-from rich.console import Console, Text
-from utils import *
+import time
+
+from vulns              import VulnTypes as V
+from rich.console       import Console, Text
+from vulns              import VULN_DESC
+from assistant.observer import Observer
+from datetime           import datetime 
+from termcolor          import colored
+from utils              import *
 
 console = Console()
 
 class StateWindow:
+
+    __count_down = 8
 
     def __init__(self) -> None:
         now = datetime.now()
@@ -43,21 +45,26 @@ class StateWindow:
         pass
     
     def show_terminal(self, observer: Observer) -> None:
+
         try:
+
+            if observer.debug:
+                StateWindow.__count_down = 1
+            
             self._show_terminal(observer)
+            
         except KeyboardInterrupt:
             import sys
             sys.exit(0) # TODO:?
             return
-    
-    _count_down = 8 # TODO: 之后调整到8 或者开启调试模式
 
     def _show_terminal(self, obs: Observer) -> None:
 
         while True:
             
-            import os
-            # os.system("clear")
+            if not obs.debug:
+                import os
+                os.system("clear")
 
             result = pyfiglet.figlet_format("Warden", font="slant")
             result = "    " + "\n    ".join(result.split('\n'))
@@ -76,7 +83,7 @@ class StateWindow:
                 f'{colored("cycle progress", "blue")} '                                        + '━' * 47 + '┫\n'
                 f'┃   cur states count : {self.cur_state_count:>5}'                            + ' ' * 34 + '┃\n'
                 f'┃ total states count : {self.total_state_count:>5}'                          + ' ' * 34 + '┃\n'
-                f'{colored("vulnerability", "blue")}'                                          + '━' * 49 + '┫\n'
+                f'{colored("vulnerability", "blue")} '                                         + '━' * 48 + '┫\n'
                 f'┃  total vulns count : {self.total_vulns_count:>3}'                          + ' ' * 36 + '┃\n'
                 f'┃ >\t{VULN_DESC[V.SELFDESTRUCT]}     : {self._vulns[V.SELFDESTRUCT]:}'       + ' ' * 34 + '┃\n'
                 f'┃ >\t{VULN_DESC[V.DELEGATECALL]}     : {self._vulns[V.DELEGATECALL]:}'       + ' ' * 34 + '┃\n'
@@ -105,6 +112,6 @@ class StateWindow:
                 self._vulns[v] = colored(str(c), "red" if c > 0 else "green")
         
             if obs.notify_statewindow_shutdown:
-                self._count_down -= 1
-                if self._count_down == 0:
+                self.__count_down -= 1
+                if self.__count_down == 0:
                     break

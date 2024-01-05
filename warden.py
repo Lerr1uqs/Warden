@@ -4,6 +4,7 @@ import os
 sys.path.append("./src")
 
 from see          import SymExecEngine
+from assistant    import Observer
 from evm          import Contract
 from loguru       import logger
 
@@ -13,6 +14,7 @@ logger.remove()
 # logger.add(sys.stdout, level="INFO")
 logger.add("loguru.log")
 
+Observer.enable_debug()
 
 con = Contract("All")
 # cfg = CFG(sb.bytecode) # TODO: runtime
