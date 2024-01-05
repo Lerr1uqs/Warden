@@ -15,11 +15,10 @@ class Fuzzer:
         pass
 
     def generate_txn_seq(self) -> Sequence[Transaction]:
+        # TODO: 
         pass
 
     def build_one_txn(self, fname: str) -> Transaction:
-        # TODO: 
-    
         # TODO: 参数设置
         # TODO: 自动设置
         unsent_txn = self.con.functions[fname](TMPADDR, 0x0721, 0x0d00, b'\xff' * 32).build_transaction({
