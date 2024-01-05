@@ -23,7 +23,7 @@ class Observer:
     
     # opt it with cfg coverage
     def __init__(self, all_instructions: List[Instruction]) -> None:
-        self._vulns: Dict[VulnTypes, List[State]] = defaultdict(lambda: []) # TODO: vuln catalogue
+        self._vulns: Dict[VulnTypes, List[State]] = defaultdict(lambda: [])
         self._total_cov_count                     = len(all_instructions)
         self._coverage                            = {}
         self.notify_statewindow_shutdown          = False
