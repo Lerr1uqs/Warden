@@ -11,7 +11,7 @@ Instruction = evmdasm.Instruction
 class SolidityBinary:
 
     instructions: List[Instruction] = []
-    # TODO: 这里也许只需要rtcode
+    
     def __init__(self, artifact: Artifact) -> None:
 
         self.artifact = artifact
