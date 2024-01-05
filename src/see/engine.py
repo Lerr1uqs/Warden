@@ -526,8 +526,9 @@ class SymExecEngine:
                 else:
                     addr = addr.concrete_value
 
-                    if addr > self.sb.end_addr or self.sb.instruction_at(addr).opcode != const.opcode.JUMPDEST:# TODO:
-                        raise Exception("Invalid jump (0x%x) at pc 0x%x" % (addr, state.pc)) # TODO:
+                    if not self.sb.check_pc_jmp_valid(state.pc):
+                        raise RuntimeError("Invalid jump (0x%x) at pc 0x%x" % (addr, state.pc))
+
                     state.pc = addr
                     self.add_branch(state)
                     return False
@@ -552,8 +553,9 @@ class SymExecEngine:
                     
                     state.solver.add(cond != BVV0)
                     state.pc = addr.concrete_value
+                    
                     if not self.sb.check_pc_jmp_valid(state.pc):
-                        raise RuntimeError("Invalid jump (0x%x)" % (state.pc))
+                        raise RuntimeError("Invalid jump (0x%x) at pc 0x%x" % (addr.concrete_value, state.pc))
 
                     self.add_branch(state)
 
