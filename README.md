@@ -43,7 +43,7 @@ notes that test function name must starts with "test_"
 - [x] 降低耦合
 - [x] 引入机制更改
 - [ ] 多函数序列调用 函数内部调用
-- [ ] 捕获编译输出
+- [x] 捕获编译输出
 - [ ] 避免重复编译
 - [ ] argparse
 - [ ] 约束缓存
