@@ -123,7 +123,9 @@ class Compiler:
 
 
     def __init__(self, contracts_path: Union[Path, str]) -> None:
-
+        '''
+        REFINE: https://web3py.readthedocs.io/en/v5/contracts.html
+        '''
         if isinstance(contracts_path, str):
             contracts_path = Path(contracts_path)
         
@@ -199,7 +201,7 @@ class Compiler:
                     abi = json.load(f)
                 
                 # NOTE: opcodes file? not in use at present
-                
+
                 if contract_name in contract_names:
                     raise RuntimeError(f"contract {output_filename} appear many times")
 
