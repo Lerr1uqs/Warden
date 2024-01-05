@@ -23,6 +23,9 @@ class Storage:
 
     def __hash__(self) -> int:
 
+        if len(self._indexes_get) == 0:
+            return 0
+        
         max_index = max(self._indexes_set)
         res = []
         
@@ -79,7 +82,7 @@ class Storage:
             raise TypeError(f"unhandled {type(idx.concrete_value)}")
         
         self._slots[idx] = value
-        self._indexes_set.add(idx.concrete_value)
+        self._indexes_set.add(idx)
 
     def __repr__(self) -> str:
         r = ""

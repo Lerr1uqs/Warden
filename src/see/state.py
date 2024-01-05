@@ -103,7 +103,8 @@ class State:
         
         return new_state
     
-    @DeprecationWarning
+    # @DeprecationWarning
+    # DEPRECATED: 
     def find_one_solution(self, var: BV) -> BV:
         solutions = self.solver.eval(var, 2)
         if len(solutions) > 1:

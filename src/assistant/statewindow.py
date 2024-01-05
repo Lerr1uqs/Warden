@@ -35,6 +35,10 @@ class StateWindow:
         self.total_vulns_count = 0
         # device status
         self.cpu_utilization = None # TODO:
+        # current evaluating constraint
+        self.cur_evaluating_constraint = "None"
+        self.average_constraint_eval_lapse = 0.00
+        self.max_constraint_eval_lapse = 0.00
 
         self._vulns = {
             V.SELFDESTRUCT: colored("0", "green"),
@@ -88,6 +92,9 @@ class StateWindow:
                 f'┃ >\t{VULN_DESC[V.DELEGATECALL]}     : {self._vulns[V.DELEGATECALL]:}'       + ' ' * 34 + '┃\n'
                 f'┃ >\t{VULN_DESC[V.ARBITRARY_JUMP]}   : {self._vulns[V.ARBITRARY_JUMP]:}'     + ' ' * 34 + '┃\n'
                 f'┗'                                                                           + '━' * 61 + '┛\n'
+                f'current evaluating constraint : {self.cur_evaluating_constraint}\n'
+                f'evaluating constraint average lapse: {self.average_constraint_eval_lapse}\n'
+                f'evaluating constraint max lapse: {self.max_constraint_eval_lapse}\n'
             )
 
             time.sleep(0.5)
@@ -106,10 +113,16 @@ class StateWindow:
 
             self.total_state_count = obs.total_state_count
 
+            self.cur_evaluating_constraint = obs.cur_evaluating_constraint
+
+            self.average_constraint_eval_lapse = obs.average_constraint_eval_lapse
+            self.max_constraint_eval_lapse = obs.max_constraint_eval_lapse
+
+
             for v in V:
                 c = obs.vuln_count(v)
                 self._vulns[v] = colored(str(c), "red" if c > 0 else "green")
-        
+
             if obs.notify_statewindow_shutdown:
                 self.__count_down -= 1
                 if self.__count_down == 0:

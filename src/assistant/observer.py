@@ -154,7 +154,7 @@ class Observer:
 
 class ConstraintEvalNotifier:
 
-    def __init__(self, obs: Observer, constraint: Union[List[claripy.Bool], claripy.Bool]):
+    def __init__(self, obs: Observer, constraint: Union[List[Type['claripy.Bool']], Type['claripy.Bool']]):
 
         from time import perf_counter
         

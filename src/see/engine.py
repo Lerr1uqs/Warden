@@ -6,13 +6,13 @@ import const
 import math
 import pdb
 
+from assistant    import Observer, ConstraintEvalNotifier
 from queue        import PriorityQueue, Queue
 from disassembler import SolidityBinary
 from collections  import defaultdict
 from evm          import Transaction
 from assistant    import StateWindow
 from vulns        import VulnTypes
-from assistant    import Observer
 from evm          import Contract
 from rich.console import Console
 from fuzzer       import Fuzzer
@@ -31,12 +31,13 @@ class SymExecEngine:
         # add a init state
         self.contract = con # TODO:
 
-        self.add_branch(State(con))# initial state 
 
         self.tracer = [] # for debug
         self.fuzz = Fuzzer(con)
         self.bugs: Dict[VulnTypes, List[State]] = defaultdict(lambda: []) # TODO: vuln catalogue
         self.observer = Observer(self.sb.instructions)
+
+        self.add_branch(State(con))# initial state 
         # self.observer.notify_statewindow_shutdown = True # TODO: debug mode
     
     # TEMP:
@@ -79,11 +80,11 @@ class SymExecEngine:
             logger.debug("avoided adding visited state")
             return
         
-        # 对一个约束条件起两个分支 其中一个可能走不了
         logger.debug(s.solver.constraints)
-        if not s.solver.satisfiable():
-            logger.warning(f"state can't satisfiable {s.solver.constraints}")
-            return 
+        with ConstraintEvalNotifier(self.observer, s.solver.constraints) as cen:
+            if not s.solver.satisfiable():
+                logger.warning(f"state can't satisfiable {s.solver.constraints}")
+                return
 
         self.states_hash_seen.add(hash(s))
         # 默认小顶堆
@@ -969,6 +970,7 @@ class SymExecEngine:
                         logger.critical("selfdestruct detect successfully")
 
                     else:
+                        # TODO: 偶尔会触发到这里 是不是selfdestruct(0)
                         raise NotImplementedError(f"unevaluable constraints {state.solver.constraints} + {constraint}")
                         # return True
                 # TODO: 0地址转账是ether frozen
