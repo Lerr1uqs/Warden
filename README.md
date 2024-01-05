@@ -39,7 +39,7 @@ notes that test function name must starts with "test_"
 - [ ] 使用能够调度的queue
 - [x] 更改环境 z3有问题
 - [ ] 增加一个状态显示 如果pc很久没更新了说不定就是正在约束求解
-- [ ] 调试模式
+- [x] 调试模式
 - [x] 降低耦合
 - [x] 引入机制更改
 - [ ] 多函数序列调用 函数内部调用
