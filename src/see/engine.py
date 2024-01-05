@@ -81,7 +81,7 @@ class SymExecEngine:
             return
         
         logger.debug(s.solver.constraints)
-        with ConstraintEvalNotifier(self.observer, s.solver.constraints) as cen:
+        with ConstraintEvalNotifier(self.observer, s.solver.constraints):
             if not s.solver.satisfiable():
                 logger.warning(f"state can't satisfiable {s.solver.constraints}")
                 return
