@@ -20,10 +20,10 @@ class Contract:
     def __init__(self, contract_name: str) -> None:
         # self.caller  = Todo()
         self.address         = secrets.token_hex(32) # TODO: generate contract address by web3 module
-        self.balance         = 10 #Todo()
-        self.block_timestamp = 1  # Todo()
-        self.block_number    = 1  #Todo
-        self.chainid         = 1  #Todo
+        self.balance         = 10 # TODO: 什么指令会调整balance
+        self.block_timestamp = 1  # TODO: 用web3模块
+        self.block_number    = 1  # TODO: ditto
+        self.chainid         = 1  # TODO: ditto
 
         
         comp = Compiler("./contracts")
