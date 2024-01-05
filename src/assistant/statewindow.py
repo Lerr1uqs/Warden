@@ -23,7 +23,7 @@ class StateWindow:
         # processing time
         self.create_time: str = now.strftime("%Y/%d/%m, %H:%M:%S")
         self.last_new_path_found: str = "None"
-        self.last_vuln_found: str = "None"    # TODO: unique vuln
+        self.last_vuln_found: str = "None"
         # state's status
         self.cur_state_count = 0
         self.total_state_count = 0
@@ -54,8 +54,7 @@ class StateWindow:
             self._show_terminal(observer)
             
         except KeyboardInterrupt:
-            import sys
-            sys.exit(0) # TODO:?
+            logger.debug("capture keyboard interrupt, return to main thread now...")
             return
 
     def _show_terminal(self, obs: Observer) -> None:
