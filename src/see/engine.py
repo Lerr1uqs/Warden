@@ -553,13 +553,13 @@ class SymExecEngine:
                     state.solver.add(cond != BVV0)
                     state.pc = addr.concrete_value
                     if not self.sb.check_pc_jmp_valid(state.pc):
-                        raise RuntimeError("Invalid jump (0x%x)" % (state.pc - 1)) # TODO:
+                        raise RuntimeError("Invalid jump (0x%x)" % (state.pc))
 
                     self.add_branch(state)
 
                     return True
                 
-                else:# addr and cond neither symbolic
+                else: # addr and cond neither symbolic
                     if cond.concrete_value == 0:
                         # continue to execute to next instruction
                         pass
