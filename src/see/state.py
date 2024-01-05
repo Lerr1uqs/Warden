@@ -52,7 +52,6 @@ class State:
         # NOTE: storage?
         self.solver.downsize() # Clears all caches associated with this backend.
 
-    # TODO:
     def __hash__(self):
 
         l = [
@@ -94,7 +93,7 @@ class State:
         # new_state.storage_written = self.storage_written.copy()
         # new_state.storage_read = self.storage_read.copy()
         new_state.storage         = self.storage.clone()
-        new_state.solver          = copy.deepcopy(self.solver)# TODO:
+        new_state.solver          = copy.deepcopy(self.solver)
         new_state.calls           = self.calls[:]
         new_state.depth           = self.depth
         new_state.exec_addrs      = copy.deepcopy(self.exec_addrs)
