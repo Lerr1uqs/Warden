@@ -187,12 +187,8 @@ class SymExecEngine:
             if False:
                 pass
             elif op == 254:  # INVALID opcode
-                # TODO: handle it
                 # REF: https://eips.ethereum.org/EIPS/eip-141
                 #  Backwards Compatibility: This instruction was never used and therefore has no effect on past contracts.
-                # ...
-                # return False
-                # raise Exception("designed INVALID opcode")
                 raise NotImplementedError("INVALID")
 
             elif op == const.opcode.JUMPDEST:
