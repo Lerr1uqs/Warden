@@ -115,3 +115,59 @@ class Observer:
         self._vulns[vuln].append(
             deepcopy(state)
         )
+
+    __cur_evaluating_constraint = "None"
+
+    @property
+    def cur_evaluating_constraint(self):
+        return Observer.__cur_evaluating_constraint
+    
+    @cur_evaluating_constraint.setter
+    def cur_evaluating_constraint(self, constraint: str):
+
+        if not isinstance(constraint, str):
+            raise TypeError
+        
+        Observer.__cur_evaluating_constraint = constraint
+    
+    __per_constraint_eval_lapses = []
+
+    def notify_constraint_eval_over(self, lapse: float) -> None:
+        Observer.__per_constraint_eval_lapses.append(lapse)
+        Observer.__cur_evaluating_constraint = "None"
+
+    # notes: timing the evaluation is the role of StateWindow cuz it is independent thread
+
+    @property
+    def average_constraint_eval_lapse(self) -> float:
+
+        total = sum(Observer.__per_constraint_eval_lapses)
+        size = len(Observer.__per_constraint_eval_lapses)
+        
+        return total / size
+    
+    @property
+    def max_constraint_eval_lapse(self) -> float:
+
+        return max(Observer.__per_constraint_eval_lapses)
+
+
+class ConstraintEvalNotifier:
+
+    def __init__(self, obs: Observer, constraint: Union[List[claripy.Bool], claripy.Bool]):
+
+        from time import perf_counter
+        
+        self.obs = obs
+        self.cst = constraint
+        self.pc  = perf_counter
+    
+    def __enter__(self):
+        self.start = self.pc()
+        self.obs.cur_evaluating_constraint = str(self.cst)
+        return self
+
+    def __exit__(self, type, value, traceback):
+        self.lapse = self.pc() - self.start
+        self.obs.notify_constraint_eval_over(self.lapse)
+        

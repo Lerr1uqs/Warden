@@ -75,15 +75,15 @@ class SymExecEngine:
         s.solver.downsize()
         s.solver.simplify()
 
+        if hash(s) in self.states_hash_seen:
+            logger.debug("avoided adding visited state")
+            return
+        
         # 对一个约束条件起两个分支 其中一个可能走不了
         logger.debug(s.solver.constraints)
         if not s.solver.satisfiable():
             logger.warning(f"state can't satisfiable {s.solver.constraints}")
             return 
-
-        if hash(s) in self.states_hash_seen:
-            logger.debug("avoided adding visited state")
-            return
 
         self.states_hash_seen.add(hash(s))
         # 默认小顶堆
