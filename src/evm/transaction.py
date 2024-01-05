@@ -1,6 +1,5 @@
 from utils import *
-from web3 import Web3
-from evm.calldata import Calldata # remove it
+from evm import w3
 # TODO:
 '''
 {
@@ -173,17 +172,15 @@ class Transaction:
         }
         '''
 
-        self.caller: int        = txn["to"] # TODO: what is to?
-        # self.value = Web3.toWei(txn["value"], "ether")# TODO:
-        # self.value              = txn["value"] # TODO: symbolize it
-        self.value              = claripy.BVS("msg.value", 256) # TODO: symbolize it
+        self.caller: int        = int(txn["to"], 16)
+        self.value              = claripy.BVS("msg.value", 256) # IMPROVE: adjust money according whether payable for function
         self.gas                = txn["gas"]
         self.chainid            = txn["chainId"]
-        # self.msgvalue = 10 # TODO: 根据混合符号执行和单纯的符号执行 结果不一样
-        self.msg                = _Msg(txn["data"], func_types) # TODO:
-        self.func_types = func_types
-
-
+        self.msg                = _Msg(txn["data"], func_types)
+        self.func_types         = func_types
+        # NOTE: be sure the NUMBER instruction is aim to get the lastest block number
+        self.block_number       = w3.eth.get_block_number
+        self.timestamp          = w3.eth.get_block('latest')["timestamp"]
 
         # CALLDATALOAD[idx] <- msg.data[idx:idx+32] (32 granularity is word)
 
