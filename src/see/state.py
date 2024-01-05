@@ -35,16 +35,12 @@ class State:
     def __repr__(self) -> str:
         return (
             "State(\n"
-            "pc = %x\n"
-            "calls = %s\n"
-            "storage = %s\n"
-            "solver = %s\n"
+            "\tpc = %x\n"
+            "\tstorage = %s\n"
             ")"
         ) % (
             self.pc,
-            self.calls,
             self.storage,
-            self.solver,
         )
     
     def clean(self):
@@ -58,34 +54,26 @@ class State:
 
     # TODO:
     def __hash__(self):
+
         l = [
             hash(self.contract),
             hash(self.pc),
-            hash(self.memory),# TODO: 要不要内存呢？？
+            hash(self.memory), 
             hash(self.storage),
+            hash(self.stack)
         ]
-        for i in self.stack:
-            l.append(hash(i))
-        for call in self.calls:
-            for arg in call:
-                l.append(hash(arg))
-        # The following is because the ordering shouldn't matter:
-        # TODO: uncomment it
-        # x = 0
-        # for k, v in self.storage_written.items():
-        #     x ^= hash((k, v))
-        # l.append(x)
-        # for k, v in self.storage_read.items():
-        #     x ^= hash((k, v))
-        # l.append(x)
-        # for constraint in self.solver.constraints:
-            # x ^= hash(constraint)
-        # l.append(x)
+
+        x = 0
+        for constraint in self.solver.constraints:
+            x ^= hash(constraint)
+
+        l.append(x)
+        
         return hash(tuple(l))
 
     def stack_push(self, x: BV):
         if len(self.stack) >= 1024:
-            raise Exception("Stack overflow") # NOTE
+            raise RuntimeError("Stack overflow") # NOTE
         self.stack.push(self, x)
     
     def stack_dup(self, n: int) -> None:
@@ -116,7 +104,7 @@ class State:
         
         return new_state
     
-    
+    @DeprecationWarning
     def find_one_solution(self, var: BV) -> BV:
         solutions = self.solver.eval(var, 2)
         if len(solutions) > 1:

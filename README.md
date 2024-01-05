@@ -48,6 +48,7 @@ notes that test function name must starts with "test_"
 - [ ] argparse
 - [ ] 约束缓存
 - [ ] 弄清段错误的位置
+- [ ] 死区基本块优化
 
 # 论文idea
 - [ ] 考虑求解的时机 没必要一直保持符号化约束 在某段事件之后可以将符号化转换为具体值

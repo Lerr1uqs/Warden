@@ -21,6 +21,18 @@ class Storage:
 
         self.address = address
 
+    def __hash__(self) -> int:
+
+        max_index = max(self._indexes_set)
+        res = []
+        
+        for i in range(0, max_index+1):
+            slot = self._slots
+            res.append(hash(slot))
+        
+        return hash(tuple(res))
+
+
     def __getitem__(self, idx: Union[BV, int]) -> BV:
 
         # if type(idx) == CONCRETE:
@@ -67,7 +79,7 @@ class Storage:
             raise TypeError(f"unhandled {type(idx.concrete_value)}")
         
         self._slots[idx] = value
-        # self._indexes_set.add(idx.concrete_value) TODO:
+        self._indexes_set.add(idx.concrete_value)
 
     def __repr__(self) -> str:
         r = ""

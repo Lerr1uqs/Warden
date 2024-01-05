@@ -9,6 +9,13 @@ bvv = lambda v : claripy.BVV(v, 256)
 from numbers import Number, Integral # TODO: move to other
 
 class Stack:
+    def __hash__(self) -> int:
+        res = []
+        for i in self.stack:
+            res.append(hash(i))
+        
+        return hash(tuple(res))
+        
     def __init__(self) -> None:
         # self.stack: List[T] = []
         self.stack: List[BV] = []
