@@ -400,12 +400,13 @@ class SymExecEngine:
                 )
                 
             elif op == const.opcode.AND:
+
                 [s0, s1] = state.stack_pop(2)
-                # TEMP: workaround for claripy error
-                # state.stack_push((s0[0] & s1[0]).zero_extend(255))
+                # TEMP: workaround for claripy bug 
+                # REF: https://github.com/angr/claripy/issues/383
+
                 if s0.op == "If" and s1.op == "If":
-                    # a = claripy.If(s0, claripy.BVV(1, 1), claripy.BVV(0, 1))
-                    # b = claripy.If(s1, claripy.BVV(1, 1), claripy.BVV(0, 1))
+                    
                     state.stack_push(
                         claripy.If(
                             claripy.And((s0 != BVV0), (s1 != BVV0)), 
@@ -413,15 +414,9 @@ class SymExecEngine:
                             BVV0
                         )
                     )
+                    
                 else:
                     state.stack_push(s0 & s1)
-                # state.stack_push(
-                #     claripy.If(
-                #         claripy.And((s0 != BVV0), (s1 != BVV0)), 
-                #         BVV1, 
-                #         BVV0
-                #     )
-                # )
 
             elif op == const.opcode.OR:
                 [s0, s1] = state.stack_pop(2)
