@@ -44,7 +44,7 @@ notes that test function name must starts with "test_"
 - [x] 引入机制更改
 - [ ] 多函数序列调用 函数内部调用
 - [x] 捕获编译输出
-- [ ] 避免重复编译
+- [x] 避免重复编译
 - [ ] argparse
 - [ ] 约束缓存
 - [ ] 弄清段错误的位置
