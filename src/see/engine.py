@@ -323,7 +323,7 @@ class SymExecEngine:
                 state.stack_push(claripy.RotateRight(value, shift))
 
             elif op == const.opcode.EXP: # a ** b
-
+                # TODO: refine here
                 [base, exp] = state.stack_pop(2)
                 base_solu = state.find_one_solution(base)
                 
