@@ -1,5 +1,6 @@
 from utils import *
 # WARN: deprecated
+@DeprecationWarning
 class Slot:
     '''
     provide slots r/w method for Memory/Storage
