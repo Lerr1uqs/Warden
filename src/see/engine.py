@@ -515,7 +515,6 @@ class SymExecEngine:
 
             elif op == const.opcode.JUMP:
                 # $pc := dst
-                # TODO: check here arbitrary jump
                 addr = state.stack_pop()
                 
                 if addr.symbolic:
