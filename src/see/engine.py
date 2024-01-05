@@ -8,6 +8,7 @@ import pdb
 
 from assistant    import Observer, ConstraintEvalNotifier
 from queue        import PriorityQueue, Queue
+from persistence  import ConstraintPersistor
 from disassembler import SolidityBinary
 from collections  import defaultdict
 from evm          import Transaction
@@ -30,7 +31,7 @@ class SymExecEngine:
         self.states_hash_seen = set()
         # add a init state
         self.contract = con # TODO:
-
+        self.cp = ConstraintPersistor()
 
         self.tracer = [] # for debug
         self.fuzz = Fuzzer(con)
@@ -81,11 +82,19 @@ class SymExecEngine:
             return
         
         logger.debug(s.solver.constraints)
+        # TODO: 缓存机制和计时计数可能有冲突
         with ConstraintEvalNotifier(self.observer, s.solver.constraints):
-            if not s.solver.satisfiable():
-                logger.warning(f"state can't satisfiable {s.solver.constraints}")
-                return
+            if (res := self.cp.find_constraint_cache(s.solver.constraints)) is not None:
+                if res == False:
+                    logger.warning("check cache found unsatistiable") # TODO: 晚点移除
+                    return
+            else:
+                if not s.solver.satisfiable():
+                    self.cp.add_constraint_cache(s.solver.constraints, False)
+                    logger.warning(f"state can't satisfiable {s.solver.constraints}")# TODO: 晚点转换为debug
+                    return
 
+        self.cp.add_constraint_cache(s.solver.constraints, True)
         self.states_hash_seen.add(hash(s))
         # 默认小顶堆
         self.branch_queue.put((s.depth, s))
@@ -141,11 +150,17 @@ class SymExecEngine:
                     logger.critical(f"found {bug}")
 
         except Exception:
+            
             self.observer.notify_statewindow_shutdown = True
+            self.cp.dump()
             wt.join() # 一定要让join能把thread收回来 不然就没法中断了
             console.print_exception(show_locals=True)
+            import sys
+            sys.exit(1)
+            
         finally:
             self.observer.notify_statewindow_shutdown = True
+            self.cp.dump()
             wt.join()
 
     def exec_branch(self, state: State, txn: Transaction) -> bool:

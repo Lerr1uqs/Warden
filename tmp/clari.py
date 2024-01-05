@@ -18,22 +18,12 @@ BVV0 = BVV(0, 256)
 BVV1 = BVV(1, 256)
 
 solver = Solver()
-# solver.add(Not(a == 0))
-c = If(a > 0, BVV(0xff, 256), BVV0)
-d = If(b < 0xff, BVV(0xff, 256), BVV0)
-e = (c ^ d)
-'''
-(Pdb++) type(e)
-<class 'claripy.ast.bv.BV'>
-'''
-import pdb;pdb.set_trace()
-print(e) # work
-e = (c | d)
-print(e) # work
-e = (c & d)
-print(e) # !!! raise ClaripyOperationError(claripy.errors.ClaripyOperationError: args' length must all be equal)
-# solver.add()
-# solver.downsize()
-# solver.simplify()
-# print(solver.constraints)
+solver.add(a > 0)
+solver.add(b > 0xff)
+solver.add(BVV0 < BVV1)
+
+print(solver.satisfiable())
+
+print(hash(tuple(solver.constraints)) & 0xffffffffffffffff)
+# solver.constraints[2] = True
 # print(solver.satisfiable())
