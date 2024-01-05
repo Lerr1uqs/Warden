@@ -37,30 +37,35 @@ class ConstraintPersistor:
         # NOTE: 对每一个约束的hash判断是不是satisfiable
         # TODO: 但是是不是要对当前的状态进行检测呢？
 
-        # if not os.path.exists():
+        # first initialize
+        if os.stat(ConstraintPersistor.CACHE_NAME).st_size == 0:
+            with open(ConstraintPersistor.CACHE_NAME, 'w+b') as f:
+                pickle.dump({}, f)
 
-        with open(ConstraintPersistor.CACHE_NAME, 'wb') as f:
+        with open(ConstraintPersistor.CACHE_NAME, 'r+b') as f:
             cache = pickle.load(f)
 
         self.satisfiable_cache: Dict[int, bool] = cache
     
     def add_constraint_cache(self, constraints: List[Type['claripy.Bool']], result: bool) -> None:
 
-        if not all(isinstance(c, claripy.Bool) for c in constraints):
+        if not all(isinstance(c, claripy.ast.bool.Bool) for c in constraints):
             raise TypeError
             
         self.satisfiable_cache[hash(tuple(constraints))] = result
     
     def find_constraint_cache(self, constraints: List[Type['claripy.Bool']]) -> Optional[bool]:
 
-        if not all(isinstance(c, claripy.Bool) for c in constraints):
+        if not all(isinstance(c, claripy.ast.bool.Bool) for c in constraints):
             raise TypeError
         
         return self.satisfiable_cache.get(hash(tuple(constraints)))
     
     def dump(self):
-
-        with open(ConstraintPersistor.CACHE_NAME, 'wb') as f:
+        '''
+        dump the constraint cache to local storage
+        '''
+        with open(ConstraintPersistor.CACHE_NAME, 'w+b') as f:
             pickle.dump(self.satisfiable_cache, f)
 
 

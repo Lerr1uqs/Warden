@@ -4,3 +4,4 @@ contracts/*
 !contracts/*.sol
 loguru.log
 temp
+constraints.cache
