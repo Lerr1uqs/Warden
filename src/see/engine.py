@@ -683,7 +683,6 @@ class SymExecEngine:
                 state.stack_push(txn.msg.len)
                 
             elif op == const.opcode.CALLDATACOPY:
-                # TODO: 移除 fos
                 # dstOst, ost, len
                 # mem[dstOst:dstOst+len-1] := msg.data[ost:ost+len-1]
                 old_state = state.clone()
@@ -692,19 +691,15 @@ class SymExecEngine:
                     state.stack_pop(),
                     state.stack_pop(),
                 )
-                fos: Callable = state.find_one_solution
 
-                dstost, ost = fos(dstost), fos(ost)
-                try:
-                    size = fos(size)
-                except MultipleSolutionsError:
-                    CALLDATACOPY_SIZE_FUZZ = Todo()
-                    # TODO: 
-                    self.add_for_fuzzing(old_state, size, CALLDATACOPY_SIZE_FUZZ)
-                    return False
+                if dstost.symbolic or ost.symbolic or size.symbolic:
+                    raise NotImplementedError
+                
+                dstost, ost, size = dstost.concrete_value, ost.concrete_value, size.concrete_value
+                # TODO: can fuzz here?
                 
                 assert size == 32 # TODO: check 也许能把32改成循环
-                assert (ost - 4) % 32 == 0
+                assert (ost - 4) % 32 == 0, "ost must be 4 + 32n cuz 4 is signature size"
 
                 msg_idx = (ost - 4) // 32
                 msg = txn.msg[msg_idx]
@@ -715,9 +710,11 @@ class SymExecEngine:
                     dstost, size, msg
                 )
 
-                # state.memory.copy_from(state.env.calldata, dstost, ost, size)
             elif op == const.opcode.CODESIZE:
-                state.stack_push(bvv(len(self.sb.instructions)))
+                state.stack_push(
+                    claripy.BVV(len(self.sb.instructions), 256)
+                )
+
             elif op == const.opcode.EXTCODESIZE:
                 raise NotImplementedError
                 addr = state.stack_pop()
