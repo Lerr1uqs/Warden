@@ -351,7 +351,7 @@ class Compiler:
                 output_filename = os.path.basename(fpath) # e.g. ArbitraryJump.bin
 
                 if output_filename.endswith(".ast"):
-                    # TODO: 
+                    # output_filename is different from others 
                     continue
                 
                 contract_name = output_filename.split('.')[0] # e.g. ArbitraryJump
