@@ -43,7 +43,7 @@ class ConstraintPersistor:
             with open(cn, 'w+b') as f:
                 pickle.dump({}, f)
 
-        with open(ConstraintPersistor.CACHE_NAME, 'r+b') as f:
+        with open(cn, 'r+b') as f:
             cache = pickle.load(f)
 
         self.satisfiable_cache: Dict[int, bool] = cache
