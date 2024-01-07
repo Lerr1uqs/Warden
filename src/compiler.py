@@ -132,10 +132,7 @@ class Artifact:
 
         # handle ast info
         # REF: assets/ast.json
-        class NodeType:
-            def __init__(self) -> None:
-                self
-                pass
+
         # the variable declared in the storage region
         # NOTE: 目前简单采用同名去辨别变量 更复杂的情况需要区别重命名 暂时不做处理
         storage_variable_names: List[int] = []
@@ -167,35 +164,54 @@ class Artifact:
                 # TODO: 假定statement是一行的内容
                 # leftExpression 和 rightExpression是嵌套的 不过做DFA只需要
                 # TODO: 不知道为什么 selfdestruct也算Identifier 先不管了
-                for statement in node["body"]["statements"]:
-                    if statement["nodeType"] == "ExpressionStatement":
-                        expression = statement["expression"]
+                try:
+                    if not node.get("body"):
+                        # interface funtion have no body
+                        continue
+                    
+                    for statement in node["body"]["statements"]:
+                        if statement["nodeType"] == "ExpressionStatement":
+                            expression = statement["expression"]
 
-                        if expression["nodeType"] == "Assignment":
-                            dfa[fname]["w"].add(expression["leftHandSide"]["name"])
-                            print(f'[DBG] dfa[{fname}][\"w\"] append {expression["leftHandSide"]["name"]}')
-                            dfa[fname]["r"].update(bfs(expression["rightHandSide"]))
+                            if expression["nodeType"] == "Assignment":
+                                if name := expression["leftHandSide"].get("name"):
+                                    # e.g. a = 1 + 2
+                                    dfa[fname]["w"].add(name)
+                                else:
+                                    # e.g. func.f = 1                                
+                                    name = expression["leftHandSide"]["expression"]["name"]
+                                    dfa[fname]["w"].add(name)
+
+                                print(f'[DBG] dfa[{fname}][\"w\"] append {name}')
+                                dfa[fname]["r"].update(bfs(expression["rightHandSide"]))
+                            else:
+                                dfa[fname]["r"].update(bfs(expression))
+
                         else:
-                            dfa[fname]["r"].update(bfs(expression))
-
-                    else:
-                        dfa[fname]["r"].update(bfs(statement))
+                            dfa[fname]["r"].update(bfs(statement))
+                except KeyError as ke:
+                    # for DEBUG
+                    # raise ke
+                    import json
+                    p = lambda js: print(json.dumps(js, indent=2))
+                    import pdb; pdb.set_trace()
+                
                 
 
         self.dfa = dfa
 
         graph = nx.DiGraph()
-        flist = []
+        fnames = []
 
         # all function nodes
         for fname in dfa.keys():
             graph.add_node(fname)
-            flist.append(fname)
+            fnames.append(fname)
 
         # build the topology graph
-        for fname in flist:
+        for fname in fnames:
             for var in dfa[fname]["w"]:
-                for otherf in flist:
+                for otherf in fnames:
                     if otherf == fname:
                         continue
                     if var in dfa[otherf]["r"]:
@@ -204,10 +220,55 @@ class Artifact:
 
         self.ftopo_graph = graph # function topology graph
 
+        # calculate the oreder sequence according indegree
+        indegree = {} # fname -> indegree
+        for fname in fnames:
+            # NOTE: I skips some function that don't affect the storage state
+            #       cuz I only analyze the state of a possible attack and not replicate the attack itself(e.g. actual transfer to attck)
+            if graph.in_degree(fname) == 0 and graph.out_degree(fname) == 0:
+                continue
+
+            indegree[fname] = graph.in_degree(fname)
+
+        '''
+        for example
+        indegree[f1] = 1
+        indegree[f2] = 3
+        indegree[f3] = 1
+        indegree[f4] = 2
+        indegree[f5] = 1
+
+        so as result:
+        function_seq_order = [
+            [f1, f3, f5],
+            [f4],
+            [f2]
+        ]
+        '''
+        def find_keys(d: Dict, target_v) -> List:
+            res = []
+            for k, v in d.items():
+                if v == target_v:
+                    res.append(k)
+
+            return res
+
+        function_seq_order: List[List[str]] = []
+        try:
+            for i in range(0, max(indegree.values())+1):
+                fname_list = find_keys(indegree, i)
+                function_seq_order.append(fname_list)
+    
+        except ValueError:
+            # not function depend on each other
+            pass
         
+        self.fseqorder = function_seq_order # have possibility of empty
 
-
-
+        if ast["nodes"][1]["canonicalName"] == "ArbitraryJumpWithFuncSeqOrder":
+            # for DEBUG
+            pass
+            # import pdb; pdb.set_trace()
 
 
 class Compiler:
@@ -287,6 +348,10 @@ class Compiler:
                 
                 output_filename = os.path.basename(fpath) # e.g. ArbitraryJump.bin
 
+                if output_filename.endswith(".ast"):
+                    # TODO: 
+                    continue
+                
                 contract_name = output_filename.split('.')[0] # e.g. ArbitraryJump
 
                 # contract name with path but not suffix

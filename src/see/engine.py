@@ -89,7 +89,7 @@ class SymExecEngine:
                     logger.warning("check cache found unsatistiable") # TODO: 晚点移除
                     return
                 
-                logger.info("hit constraint cache") # TEMP:
+                logger.info(f"{s.solver.constraints} hit local cache") # TEMP:
             else:
                 if not s.solver.satisfiable():
                     self.cp.add_constraint_cache(s.solver.constraints, False)
