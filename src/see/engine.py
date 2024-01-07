@@ -7,6 +7,7 @@ import math
 import pdb
 
 from assistant    import Observer, ConstraintEvalNotifier
+from version      import VersionControl, Stage
 from queue        import PriorityQueue, Queue
 from persistence  import ConstraintPersistor
 from disassembler import SolidityBinary
@@ -26,20 +27,20 @@ console = Console()
 class SymExecEngine:
     def __init__(self, con: Contract) -> None:
         # self.branch_queue = PriorityQueue() #TODO:
-        self.branch_queue = Queue() 
-        self.sb = con.sb
-        self.states_hash_seen = set()
-        # add a init state
-        self.contract = con # TODO:
-        self.cp = ConstraintPersistor()
+        self.branch_queue                       = Queue() 
+        self.sb                                 = con.sb
+        self.states_hash_seen                   = set()
+        # add a init state                  
+        self.contract                           = con
+        self.cp                                 = ConstraintPersistor()
+        self.version_control                    = VersionControl(Stage.MID_TERM)
+                  
+        self.tracer                             = [] # for debug
+        self.fuzz                               = Fuzzer(con)
+        self.bugs: Dict[VulnTypes, List[State]] = defaultdict(lambda: [])
+        self.observer                           = Observer(self.sb.instructions)
 
-        self.tracer = [] # for debug
-        self.fuzz = Fuzzer(con)
-        self.bugs: Dict[VulnTypes, List[State]] = defaultdict(lambda: []) # TODO: vuln catalogue
-        self.observer = Observer(self.sb.instructions)
-
-        self.add_branch(State(con))# initial state 
-        # self.observer.notify_statewindow_shutdown = True # TODO: debug mode
+        self.add_branch(State(con)) # initial state 
     
     # TEMP:
     def add_for_fuzz(self, s: State, var: BV, tries: List[Callable]=[]) -> None:
@@ -116,15 +117,18 @@ class SymExecEngine:
         self.wt = wt
         wt.start()
 
+        from see.state import STATE_COUNTER 
+        
         for txn in txn_iter:
+
             logger.debug(f"execute transaction {txn}")
             preserved_states = []
+
             # NOTE: exhaust the states for one transaction
             try:
                 temp_flag = False
                 while not self.branch_queue.empty():
                     # NOTE: qsize only work in single-thread environment
-                    from see.state import STATE_COUNTER #TODO： 记录
                     logger.debug(f"self.branch_queue len is {self.branch_queue.qsize()}")
                     logger.debug(f"total states cound is is {STATE_COUNTER}")
                     self.observer.cur_state_count = self.branch_queue.qsize()
@@ -135,13 +139,13 @@ class SymExecEngine:
 
                     state.depth += 1
 
-                    # TODO: temporary avoid circular traverse
-                    if state.pc == 0:
-                        if temp_flag == False:
-                            temp_flag = True
-                        else:
-                            logger.warning("circular detected")
-                            continue
+                    # # TODO: temporary avoid circular traverse
+                    # if state.pc == 0:
+                    #     if temp_flag == False:
+                    #         temp_flag = True
+                    #     else:
+                    #         logger.warning("circular detected")
+                    #         continue
 
                     # logger.info("execute at pc: %#x with depth %i." % (state.pc, depth))
                     success = self.exec_branch(state, txn)
@@ -245,7 +249,6 @@ class SymExecEngine:
                 state.stack_push(s0 * s1)
                 
             elif op == const.opcode.DIV:
-                # TODO: 除数为0会导致revert
                 # We need to use claripy.LShR instead of a division if possible,
                 # because the solver is bad dealing with divisions, better
                 # with shifts. And we need shifts to handle the solidity ABI
@@ -256,7 +259,7 @@ class SymExecEngine:
                     divisor = s1.concrete_value
 
                     if divisor == 0:
-                        raise NotImplementedError("divide by zero")
+                        raise RuntimeError("divide by zero")
 
                     elif divisor == 1:
                         state.stack_push(s0)
@@ -266,7 +269,7 @@ class SymExecEngine:
                         state.stack_push(s0.LShR(exp))
 
                     else:
-                        raise NotImplementedError("unhandled divisor")
+                        raise RuntimeError("unhandled divisor")
 
                 else:
                     state.stack_push(
