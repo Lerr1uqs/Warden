@@ -2,15 +2,9 @@ import secrets
 import json
 
 from disassembler import SolidityBinary
-from evm          import provider, w3
+from evm          import provider
 from compiler     import Compiler
 from utils        import *
-
-# eth-tester populates accounts with test ether:
-# acct1 = w3.eth.accounts[0]
-# TODO: temporary
-
-TMPADDR = provider.eth.accounts[0]
 
     
 class Contract:
@@ -18,7 +12,6 @@ class Contract:
         # self.caller  = Todo()
         self.address         = secrets.token_hex(32) # TODO: generate contract address by web3 module
         self.balance         = 10 # TODO: 什么指令会调整balance
-
         
         comp = Compiler("./contracts")
         af = comp.contract_artifact(contract_name)
