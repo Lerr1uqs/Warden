@@ -1,24 +1,36 @@
 from utils import *
 import copy
 
+def combine_bv8_to_bv256(bv8s: List[BV]) -> BV:
+
+    res = BVVify(0)
+
+    assert len(bv8s) == 32
+    assert all(bv8.length == 8 for bv8 in bv8s)
+
+    for bv8 in bv8s:
+        res <<= 8
+        res |= bv8.zero_extend(256 - 8)
+    
+    return res
+    
+
 # NOTE: 内存的写入操作是找到freemem_pointer然后写4个字节过去 每一个slot还是32字节 所以这里只需要按地址编排写入位置即可 不需要管slot的索引了
 class Memory:
+    # NOTE: I not provide the extend operation which Memory actual needed.
     def __init__(self) -> None:
-        self._mem: Dict[int, BV] = {} # mem[slot idx] -> 32-byte slot
         self._mem: List[BV] = [claripy.BVV(0, 8)] * 1024 # TEMP:
-        # TODO: add extend operation
     
-    def __hash__(self) -> int:# TODO:
+    def __hash__(self) -> int:
         r = 0
         for v in self._mem:
             r ^= hash(v)
         return r
 
-    # TODO: repr as slot
     def __repr__(self) -> str:
         r = "\n"
-        for k, v in self._mem:
-            r += f"{k:03x} {v}\n"
+        for i in range(0, len(self._mem), 32):
+            r += f"{i // 32:03x} {combine_bv8_to_bv256(self._mem[i:i+32])}\n"
         return r
 
     def clone(self):
@@ -58,47 +70,14 @@ class Memory:
         if not isinstance(value, BV):
             raise TypeError(f"value must be BV but found {type(value)}")
 
-        if bytes_size * 8 != value.length: # TODO: 确认一下
+        if bytes_size * 8 != value.length:
             raise TypeError(f"length not match!")
 
         chops = value.chop(8)
         for i in range(len(chops)):
             self._write_one_byte(addr + i, chops[i])
 
-        # if bytes_size == 32:
-        #     self._write_slot(addr // 0x20, value)
-        
-        # else:
-
-        #     import math
-
-        #     r = math.floor(bytes_size / 32) # 向下取整
-        #     s = addr // 0x20
-        #     l = value.length
-
-        #     for i in range(s, s + r):
-        #         slot = value[l - 1 - i * 256: l - 256 - i * 256] # truncate 256bit from start to end
-        #         self._write_slot(i, slot)
-
-        #     if bytes_size % 32 != 0:
-        #         # means remnant
-        #         remnants: List[BV] = value[l - 1 - r * 256: 0].chop(8)
-        #         units   : List[BV] = self._read_slot(s + r).chop(8)
-
-        #         for i in range(len(remnants)):
-        #             units[i] = remnants[i]
-
-        #         # merge a list of BV8 to BV256
-        #         slot = claripy.BVV(0, 256)
-
-        #         for i in range(32):
-        #             slot <<= 8
-        #             slot &= ~0xff
-        #             slot += units[i].zero_extend(256 - 8)
-                
-        #         self._write_slot(s + r, claripy.simplify(slot))
-
-    def read(self, addr: int, bytes_size: int) -> BV:# TODO: type
+    def read(self, addr: int, bytes_size: int) -> BV:
         '''
         read a slot from given address
         '''
@@ -121,33 +100,6 @@ class Memory:
 
         return claripy.simplify(res)
 
-        # if bytes_size != 32:
-        #     import math
-
-        #     res = claripy.BVV(0, bytes_size * 8)
-
-        #     r = math.floor(bytes_size / 32) # 向下取整
-        #     s = addr // 0x20
-
-        #     for i in range(s, s + r):
-        #         res <<= 256
-        #         slot = self._read_slot(i)
-        #         res += slot.zero_extend(res.length - 256)
-
-
-        #     if bytes_size % 32 != 0:
-        #         # means remnant
-        #         m = bytes_size % 32 
-        #         slot = self._read_slot(s + r) 
-        #         remnant = slot[255: 255 - 8 * m + 1] # assume m = 1, then 255 254 253 252 251 250 249 248
-
-        #         res <<= remnant.length
-        #         res += slot.zero_extend(res.length - remnant.length)
-                
-        #     return claripy.simplify(res)
-                
-        # else:
-        #     return claripy.simplify(self._mem[addr // 32])
 
 @DeprecationWarning
 class _Memory:
