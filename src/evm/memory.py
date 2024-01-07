@@ -19,7 +19,7 @@ def combine_bv8_to_bv256(bv8s: List[BV]) -> BV:
 class Memory:
     # NOTE: I not provide the extend operation which Memory actual needed.
     def __init__(self) -> None:
-        self._mem: List[BV] = [claripy.BVV(0, 8)] * 1024 # TEMP:
+        self._mem: List[BV] = [claripy.BVV(0, 8)] * 1024 # NOTE: here need more refined with initial capacity
     
     def __hash__(self) -> int:
         r = 0
