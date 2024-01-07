@@ -135,10 +135,9 @@ class Artifact:
 
         # the variable declared in the storage region
         # NOTE: 目前简单采用同名去辨别变量 更复杂的情况需要区别重命名 暂时不做处理
-        storage_variable_names: List[int] = []
+        storage_variable_names: Set[str] = set()
 
         # dfa[fname]["w/r"] = List[var_name]
-        # TODO: 转换为set
         dfa: Dict[str, Dict[str, Set[str]]] = defaultdict(lambda: defaultdict(lambda: set()))
 
         for node in ast["nodes"]:
@@ -150,7 +149,7 @@ class Artifact:
             print(node["nodeType"])
             
             if node["nodeType"] == "VariableDeclaration":
-                storage_variable_names.append(node["name"])
+                storage_variable_names.add(node["name"])
                 print(f'[DBG] storage_variable_names append {node["name"]}')
                 continue
 
@@ -161,9 +160,9 @@ class Artifact:
                 if node["kind"] == "constructor":
                     continue
 
-                # TODO: 假定statement是一行的内容
+                # NOTE: I assume the term `statemen` is content of one line, but I can't found enough material to prove that
                 # leftExpression 和 rightExpression是嵌套的 不过做DFA只需要
-                # TODO: 不知道为什么 selfdestruct也算Identifier 先不管了
+                # NOTE: the function `selfdestruct` also be conceived as `Identifier` in ast... 
                 try:
                     if not node.get("body"):
                         # interface funtion have no body
@@ -182,7 +181,7 @@ class Artifact:
                                     name = expression["leftHandSide"]["expression"]["name"]
                                     dfa[fname]["w"].add(name)
 
-                                print(f'[DBG] dfa[{fname}][\"w\"] append {name}')
+                                # print(f'[DBG] dfa[{fname}][\"w\"] append {name}')
                                 dfa[fname]["r"].update(bfs(expression["rightHandSide"]))
                             else:
                                 dfa[fname]["r"].update(bfs(expression))
@@ -196,7 +195,10 @@ class Artifact:
                     p = lambda js: print(json.dumps(js, indent=2))
                     import pdb; pdb.set_trace()
                 
-                
+        # only remain the storage function name
+        for fname in dfa.keys():
+            dfa[fname]["r"].intersection_update(storage_variable_names)
+            dfa[fname]["w"].intersection_update(storage_variable_names)
 
         self.dfa = dfa
 
