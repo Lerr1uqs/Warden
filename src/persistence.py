@@ -8,7 +8,11 @@ from collections import defaultdict
 from utils       import *
 
 class ConstraintPersistor:
+
     CACHE_NAME = "constraints.cache"
+
+    cache_enabled = True # disable for perf 
+    
     def __init__(self) -> None:
         '''
         constraint persistence to storage
@@ -58,6 +62,9 @@ class ConstraintPersistor:
         self.satisfiable_cache[hash(tuple(csts))] = result
     
     def find_constraint_cache(self, constraints: List[Type['claripy.Bool']]) -> Optional[bool]:
+
+        if not ConstraintPersistor.cache_enabled:
+            return None
 
         if not all(isinstance(c, claripy.ast.bool.Bool) for c in constraints):
             raise TypeError
