@@ -8,8 +8,6 @@ from collections import defaultdict
 # storage的粒度比memory更细 是对slot进行265位的处理的
 class Storage:
     def __init__(self, address: int) -> None:
-        # TODO:
-        assert isinstance(claripy.BVV(1, 256), BV)
         # debug for storage allow uninit read
         self._slots: Dict[int, BV] = defaultdict(lambda: BVV0)
 
@@ -30,7 +28,7 @@ class Storage:
         res = []
         
         for i in range(0, max_index+1):
-            slot = self._slots
+            slot = self._slots[i]
             res.append(hash(slot))
         
         return hash(tuple(res))
