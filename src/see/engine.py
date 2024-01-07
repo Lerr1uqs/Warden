@@ -99,7 +99,7 @@ class SymExecEngine:
                     return
 
         logger.debug(f"add new constraint cache for {s.solver.constraints}")
-        
+
         self.cp.add_constraint_cache(s.solver.constraints, True)
         self.states_hash_seen.add(hash(s))
         # 默认小顶堆
@@ -128,7 +128,6 @@ class SymExecEngine:
 
             # NOTE: exhaust the states for one transaction
             try:
-                temp_flag = False
                 while not self.branch_queue.empty():
                     # NOTE: qsize only work in single-thread environment
                     logger.debug(f"self.branch_queue len is {self.branch_queue.qsize()}")
@@ -141,17 +140,12 @@ class SymExecEngine:
 
                     state.depth += 1
 
-                    # # TODO: temporary avoid circular traverse
-                    # if state.pc == 0:
-                    #     if temp_flag == False:
-                    #         temp_flag = True
-                    #     else:
-                    #         logger.warning("circular detected")
-                    #         continue
+                    # # NOTE: maybe need avoid circular traverse?
 
                     # logger.info("execute at pc: %#x with depth %i." % (state.pc, depth))
                     success = self.exec_branch(state, txn)
                     logger.info("state end with pc %#X %s" %(state.pc, self.sb.instruction_at(state.pc)))
+
                     if self.sb.instruction_at(state.pc).name == "STOP":
                         # TODO: 用返回值确认 这是函数正常结束 重新加入队列中
                         state.pc = 0 # TODO: 说明：用选择子去跳转 所以从0开始
@@ -457,13 +451,7 @@ class SymExecEngine:
             elif op == const.opcode.OR:
                 [s0, s1] = state.stack_pop(2)
                 state.stack_push(s0 | s1)
-                # state.stack_push(
-                #     claripy.If(
-                #         claripy.Or((s0 != BVV0), (s1 != BVV0)), 
-                #         BVV1, 
-                #         BVV0
-                #     )
-                # )
+
             elif op == const.opcode.XOR:
                 [s0, s1] = state.stack_pop(2)
                 state.stack_push(s0 ^ s1)
@@ -481,7 +469,7 @@ class SymExecEngine:
                 )
 
             elif op == const.opcode.PC:
-                state.stack_push(bvv(state.pc))
+                state.stack_push(BVVify(state.pc))
 
             elif op == const.opcode.GAS:
                 # gasRemaining
@@ -635,7 +623,6 @@ class SymExecEngine:
             elif const.opcode.DUP1 <= op <= const.opcode.DUP16:
                 # clone ith value on stack
                 depth = op - const.opcode.DUP1 + 1
-                # dup = state.stack.stack[-depth] # TODO: provide a stack index select
                 state.stack_dup(depth)
 
             elif const.opcode.SWAP1 <= op <= const.opcode.SWAP16:
@@ -644,16 +631,18 @@ class SymExecEngine:
 
             elif const.opcode.LOG0 <= op <= const.opcode.LOG4:
                 '''
-                永久记录一个函数签名+参数在区块链上
+                log a function signature and parameters in chain permanently
                 '''
                 raise NotImplementedError
-                # TODO: 这个应该不需要模拟
+                # NOTE: maybe this not need to simulate
+
                 # LOG0(memory[ost:ost+len-1])
                 # LOG1(memory[ost:ost+len-1], topic0, topic1)
                 depth = op - const.opcode.LOG0
                 dstost, mlen = (state.stack_pop(), state.stack_pop())
                 topics = [state.stack_pop() for _ in range(depth)]
-            elif op == const.opcode.SHA3:# TODO:
+
+            elif op == const.opcode.SHA3:
                 raise NotImplementedError
 
                 fos = state.find_one_solution
@@ -662,8 +651,8 @@ class SymExecEngine:
                 s1 = state.stack_pop()
 
                 start, length = fos(s0), fos(s1)
-                memory = state.memory.read(start, length)# TODO:
-                state.stack_push(Sha3(memory))# TODO:
+                memory = state.memory.read(start, length)
+                state.stack_push(Sha3(memory))
 
             elif op == const.opcode.STOP:
                 # halt execution
@@ -806,23 +795,26 @@ class SymExecEngine:
                         state.memory.write(mem_start + i, 1, claripy.BVV(0, 8))
 
             elif op == const.opcode.MLOAD:
-                idx = state.stack_pop()
+                addr = state.stack_pop()
 
-                if idx.symbolic:
+                if addr.symbolic:
                     raise NotImplementedError
                     
                 state.stack_push(
-                    state.memory.read(idx.concrete_value, 32)
+                    state.memory.read(
+                        addr.concrete_value, 
+                        32
+                    )
                 )# TODO
 
             elif op == const.opcode.MSTORE:
-                idx, value = state.stack_pop(), state.stack_pop()
+                addr, value = state.stack_pop(), state.stack_pop()
 
-                if idx.symbolic:
+                if addr.symbolic:
                     raise NotImplementedError
                     
-                logger.debug(f"MSTORE : mem[{idx}:{idx}+32] = {value}")
-                state.memory.write(idx.concrete_value, 32, value)# TODO
+                logger.debug(f"MSTORE : mem[{addr}:{addr}+32] = {value}")
+                state.memory.write(addr.concrete_value, 32, value)
                 
             elif op == const.opcode.MSTORE8:
                 raise NotImplementedError
@@ -855,8 +847,8 @@ class SymExecEngine:
                 #     state.solver.add(w_key != key)# 老状态没法eval出 w_key == key
                 # # 满足从一个没读过的storage slot读
                 # if state.solver.satisfiable():
-                #     raise Exception("impossible") # TODO:
-                #     assert key not in state.storage_written # TODO:
+                #     raise Exception("impossible") 
+                #     assert key not in state.storage_written 
                 #     if key not in state.storage_read:
                 #         state.storage_read[key] = claripy.BVS("storage[%s]" % key, 256)
                 #     state.stack_push(state.storage_read[key])
@@ -871,7 +863,7 @@ class SymExecEngine:
                 if key.concrete:
                     state.storage[key] = value
                 else:
-                    raise NotImplementedError("idx is symbolic 任意写？")
+                    raise NotImplementedError("idx is symbolic arbi write?")
                 # # TODO: 如果能写一个没读过的 算不算任意写呢？（好像不算 但是读才算
                 # for w_key, w_value in state.storage_written.items():
                 #     read_from_written = [w_key == key]
@@ -997,6 +989,7 @@ class SymExecEngine:
                 )
 
             elif op == const.opcode.SELFDESTRUCT:
+                
                 addr = state.stack_pop()
                 
                 if addr.symbolic:
@@ -1020,7 +1013,6 @@ class SymExecEngine:
                 return False
 
             else:
-                # TODO:
                 raise RuntimeError(state, "Unknown opcode %#x" % op)
 
             state.pc += 1    
