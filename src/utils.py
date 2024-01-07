@@ -3,6 +3,7 @@ import numbers
 
 from typing import (Callable, Optional, TypeVar, List, Tuple, Type, Dict, Any, Union, Set, Generic, Sequence)
 from loguru import logger
+BV = claripy.ast.BV
 
 CONCRETE = numbers.Number# TEMP:
 # internal
@@ -22,14 +23,11 @@ class SymbolicMultiSolutions(Exception):
     pass
 
 
-bvv = lambda v : claripy.BVV(v, 256)
-# bvs = lambda v : claripy.BVS(v, 256)
 
 BVV0 = claripy.BVV(0, 256)
 BVV1 = claripy.BVV(1, 256)
 BVV0_8 = claripy.BVV(0, 8)
-# BVV1 = bvv(1)
-BV = claripy.ast.BV
+BVVify = lambda v: claripy.BVV(v, 256)
 
 # TEMP: temporary
 EXP_EXPONENT_FUZZ = {min, max}

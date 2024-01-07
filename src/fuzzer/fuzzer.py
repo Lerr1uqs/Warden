@@ -45,7 +45,7 @@ class Fuzzer:
 
             elif t == "bytes":
                 args.append(b'\xff' * 0x20) # NOTE: only handle the 0x20 bytes
-                
+
             else:
                 raise TypeError(f"unhandled type {t}")
                 
@@ -67,7 +67,6 @@ class Fuzzer:
             'data': '0x94321f820000000000000000000000007e5f4552091a69125d5dfcb7b8c2659029395bdf'
         }
         '''
-        # TODO:
         return Transaction(unsent_txn, fname, self.con.artifact.func_input_types[fname])
 
 

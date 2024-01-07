@@ -2,12 +2,6 @@ from utils import *
 from disassembler import SolidityBinary
 import copy
 
-BV = claripy.ast.BV
-bvv = lambda v : claripy.BVV(v, 256)
-# T = TypeVar("T")
-
-from numbers import Number, Integral # TODO: move to other
-
 class Stack:
     def __hash__(self) -> int:
         res = []
@@ -69,7 +63,10 @@ class Stack:
 
     def pop(self, n=1) -> Union[BV, List[BV]]:
         '''
-        返回一个栈顶到栈底的pop列表
+        return a pop list from top to end.
+        e.g.
+            stack = [1, 2, 3]
+            stack.pop(2) = [3, 2]
         '''
         if n == 1:
             assert len(self.stack) > 0
@@ -82,12 +79,14 @@ class Stack:
 
         return ret
     
-    # TODO: circular import State
     def push(self, s, e: Union[BV, int]) -> None:
+        '''
+        s: State
+        '''
         if isinstance(e, BV):
             pass
         elif isinstance(e, int):
-            e = bvv(e)
+            e = BVVify(e)
         else:
             raise TypeError(f"push type: {type(e)}")
 
@@ -111,4 +110,3 @@ class Stack:
             return value
         else:
             raise StopIteration
-    # TODO: provide a idx select
