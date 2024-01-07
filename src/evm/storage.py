@@ -60,7 +60,7 @@ class Storage:
 
         return claripy.simplify(slots[idx])
     
-    def __setitem__(self, idx: BV, value: Union[BV, claripy.ast.Bool]) -> None: # TODO:类型
+    def __setitem__(self, idx: BV, value: Union[BV, claripy.ast.Bool]) -> None:
 
         if not isinstance(idx, BV):
             raise TypeError
