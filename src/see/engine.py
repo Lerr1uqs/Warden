@@ -25,6 +25,7 @@ from utils        import *
 console = Console()
 
 class SymExecEngine:
+    
     def __init__(self, con: Contract) -> None:
         # self.branch_queue = PriorityQueue() #TODO:
         self.branch_queue                       = Queue() 
@@ -989,7 +990,7 @@ class SymExecEngine:
                 )
 
             elif op == const.opcode.SELFDESTRUCT:
-                
+
                 addr = state.stack_pop()
                 
                 if addr.symbolic:
