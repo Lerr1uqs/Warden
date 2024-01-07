@@ -96,6 +96,7 @@ class SymExecEngine:
                     logger.warning(f"state can't satisfiable {s.solver.constraints}")# TODO: 晚点转换为debug
                     return
 
+        logger.debug(f"add new constraint cache for {s.solver.constraints}")
         self.cp.add_constraint_cache(s.solver.constraints, True)
         self.states_hash_seen.add(hash(s))
         # 默认小顶堆
