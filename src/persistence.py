@@ -38,8 +38,9 @@ class ConstraintPersistor:
         # TODO: 但是是不是要对当前的状态进行检测呢？
 
         # first initialize
-        if os.stat(ConstraintPersistor.CACHE_NAME).st_size == 0:
-            with open(ConstraintPersistor.CACHE_NAME, 'w+b') as f:
+        cn = ConstraintPersistor.CACHE_NAME
+        if (not os.path.exists(cn)) or (os.stat(cn).st_size == 0):
+            with open(cn, 'w+b') as f:
                 pickle.dump({}, f)
 
         with open(ConstraintPersistor.CACHE_NAME, 'r+b') as f:
@@ -51,15 +52,19 @@ class ConstraintPersistor:
 
         if not all(isinstance(c, claripy.ast.bool.Bool) for c in constraints):
             raise TypeError
-            
-        self.satisfiable_cache[hash(tuple(constraints))] = result
+        
+        # NOTE: the order for constraints is vital in hash search
+        csts = sorted(constraints, key=lambda x: hash(x))
+
+        self.satisfiable_cache[hash(tuple(csts))] = result
     
     def find_constraint_cache(self, constraints: List[Type['claripy.Bool']]) -> Optional[bool]:
 
         if not all(isinstance(c, claripy.ast.bool.Bool) for c in constraints):
             raise TypeError
         
-        return self.satisfiable_cache.get(hash(tuple(constraints)))
+        csts = sorted(constraints, key=lambda x: hash(x))
+        return self.satisfiable_cache.get(hash(tuple(csts)))
     
     def dump(self):
         '''
