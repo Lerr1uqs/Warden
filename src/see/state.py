@@ -44,9 +44,7 @@ class State:
         )
     
     def clean(self):
-        '''
-        NOTE: 
-        '''
+        raise NotImplementedError
         self.stack.clean()
         self.memory.clean()
         # NOTE: storage?
@@ -71,8 +69,10 @@ class State:
         return hash(tuple(l))
 
     def stack_push(self, x: BV):
+
         if len(self.stack) >= 1024:
-            raise RuntimeError("Stack overflow") # NOTE
+            raise RuntimeError("Stack overflow")
+
         self.stack.push(self, x)
     
     def stack_dup(self, n: int) -> None:
@@ -110,4 +110,4 @@ class State:
         if len(solutions) > 1:
             raise SymbolicMultiSolutions
         logger.debug(type(solutions))
-        return solutions[0] # TODO:solution的类型
+        return solutions[0]
