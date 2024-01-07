@@ -108,7 +108,7 @@ class _Memory:
     RETURN指令执行的时候是借助return mem[ost:ost+len-1]的 所以返回值一定会加载到内存中
     '''
 
-    # TODO: 检查逻辑 一个合约只需要初始化一次rtcode
+    # deprecated-2do: 检查逻辑 一个合约只需要初始化一次rtcode
     def __init__(self, rtcode: Optional[bytes]=None) -> None:
         super().__init__()# 一定要先初始化pydantic的基类 不然很多东西都没注册
         # self._msize = 0
@@ -117,17 +117,17 @@ class _Memory:
         # import pdb;pdb.set_trace()
 
         self._msize = 0
-        self._mem_limit    = 0x2000# TODO: 暂时
+        self._mem_limit    = 0x2000# deprecated-2do: 暂时
 
         # self._have_read    = set()
-        # self._have_written = set()# TODO:
+        # self._have_written = set()# deprecated-2do:
 
         self._mem: Dict[int, BV] = {}
 
-        # if rtcode is not None: # TODO: non mem init?
+        # if rtcode is not None: # deprecated-2do: non mem init?
             # self.init_rt_bytecode(rtcode)
         
-    def __hash__(self) -> int:# TODO:
+    def __hash__(self) -> int:# deprecated-2do:
         r = 0
         for k, v in self._mem.items():
             r ^= hash(k) ^ hash(v)
@@ -165,7 +165,7 @@ class _Memory:
             v = v << 8
             v = v & ~0xff
             # assert self._mem.get(addr + i).length == 8, f"{self._mem.get(addr + i, 0).length}"
-            b = self._mem.get(addr + i, BVV0_8) # TODO: 这里读了未初始化的内存
+            b = self._mem.get(addr + i, BVV0_8) # deprecated-2do: 这里读了未初始化的内存
             v += b.zero_extend(256 - 8)
 
         return claripy.simplify(v)
@@ -198,7 +198,7 @@ class _Memory:
         return 4-byte BV
         '''
         assert addr % 2 == 0
-        # TODO:???? 从未初始化的内存读吗
+        # deprecated-2do:???? 从未初始化的内存读吗
         # assert self._mem.get(addr) is not None, f"get uninit mem at {hex(addr)}" # NOTE: 应该没有人从未初始化的内存中读东西吧？
 
         ret256 = self._inner_read(addr, 4)
@@ -217,9 +217,9 @@ class _Memory:
         # 默认为0
         return self._mem.get(addr, claripy.BVV(0, 8))
 
-    # TODO: change it to byte width
-    # TODO: 重构 变成slot + byte更改的形式效率更高
-    def read(self, addr: int, bytes_size: int) -> BV:# TODO: type
+    # deprecated-2do: change it to byte width
+    # deprecated-2do: 重构 变成slot + byte更改的形式效率更高
+    def read(self, addr: int, bytes_size: int) -> BV:# deprecated-2do: type
         '''
         size: bits-width
         '''
@@ -229,10 +229,10 @@ class _Memory:
         # assert self._mem.get(addr) is not None # NOTE: 应该没有人从未初始化的内存中读东西吧？
 
         assert bytes_size % 32 == 0
-        assert 0 <= bytes_size and bytes_size <= 0xff     # TODO: maybe?
+        assert 0 <= bytes_size and bytes_size <= 0xff     # deprecated-2do: maybe?
         
         v = BVV0
-        # TODO: simplify it
+        # deprecated-2do: simplify it
         for i in range(bytes_size):
             v = v << 8 
             e = self._read_one_byte(addr + i)
@@ -243,7 +243,7 @@ class _Memory:
         # self._have_read.add(addr)
         return claripy.simplify(v)
     
-    # TODO: MSTORE8 ?????
+    # deprecated-2do: MSTORE8 ?????
     # NOTE: solidity can only use MSTORE to write 32-bytes value but 
     #       can read any bits from memory in other instruction
     # def write(self, addr: int, bits_size: int, val: Union[CONCRETE, BV]) -> None:
