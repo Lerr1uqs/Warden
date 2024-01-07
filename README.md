@@ -50,6 +50,7 @@ notes that test function name must starts with "test_"
 - [ ] 弄清段错误的位置
 - [ ] 死区基本块优化
 - [ ] 总用时
+- [ ] 版本控制器和perf
 # NOTE:
 暂未考虑constructor, 因为这涉及到deploycode的初始化问题和调用序列生成这两块 还有最初的状态初始化，不过我心情好可能就写下把
 # 论文idea

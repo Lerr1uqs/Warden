@@ -159,7 +159,7 @@ class _Msg:
 
         
 class Transaction:
-    def __init__(self, txn: Dict, func_types: List) -> None:
+    def __init__(self, txn: Dict, fname: str, func_types: List) -> None:
         '''
         e.g. txn = {
             'value': 0, 
@@ -181,6 +181,9 @@ class Transaction:
         # NOTE: be sure the NUMBER instruction is aim to get the lastest block number
         self.block_number       = w3.eth.get_block_number
         self.timestamp          = w3.eth.get_block('latest')["timestamp"]
+        self.fname              = fname
 
         # CALLDATALOAD[idx] <- msg.data[idx:idx+32] (32 granularity is word)
 
+    def __repr__(self) -> str:
+        return f"Txn({self.fname})"

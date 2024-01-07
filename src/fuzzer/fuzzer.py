@@ -45,7 +45,6 @@ class Fuzzer:
                 raise TypeError(f"unhandled type {t}")
                 
 
-        import pdb; pdb.set_trace()
         unsent_txn = self.con.functions[fname](*args).build_transaction({
             "to": TMPADDR,
             "gas": 123456
@@ -64,7 +63,7 @@ class Fuzzer:
         }
         '''
         # TODO:
-        return Transaction(unsent_txn, self.con.artifact.func_input_types[fname])
+        return Transaction(unsent_txn, fname, self.con.artifact.func_input_types[fname])
 
 
         

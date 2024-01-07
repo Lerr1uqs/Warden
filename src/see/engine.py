@@ -106,65 +106,80 @@ class SymExecEngine:
 
         assert not self.branch_queue.empty()
 
-        txn = self.fuzz.build_one_txn("vuln") # TODO:
+        txn_iter = self.fuzz.generate_txn_seq() # TODO:
         
         # wind thread
         wt = Thread(
             target=StateWindow().show_terminal, 
             args=(self.observer,)
         )
+        self.wt = wt
         wt.start()
 
-        try:
-            temp_flag = False
-            while not self.branch_queue.empty():
-                # NOTE: qsize only work in single-thread environment
-                from see.state import STATE_COUNTER #TODO： 记录
-                logger.debug(f"self.branch_queue len is {self.branch_queue.qsize()}")
-                logger.debug(f"total states cound is is {STATE_COUNTER}")
-                self.observer.cur_state_count = self.branch_queue.qsize()
-                self.observer.total_state_count = STATE_COUNTER
+        for txn in txn_iter:
+            logger.debug(f"execute transaction {txn}")
+            preserved_states = []
+            # NOTE: exhaust the states for one transaction
+            try:
+                temp_flag = False
+                while not self.branch_queue.empty():
+                    # NOTE: qsize only work in single-thread environment
+                    from see.state import STATE_COUNTER #TODO： 记录
+                    logger.debug(f"self.branch_queue len is {self.branch_queue.qsize()}")
+                    logger.debug(f"total states cound is is {STATE_COUNTER}")
+                    self.observer.cur_state_count = self.branch_queue.qsize()
+                    self.observer.total_state_count = STATE_COUNTER
 
-                depth: int; state: State
-                depth, state = self.branch_queue.get()
+                    depth: int; state: State
+                    depth, state = self.branch_queue.get()
 
-                state.depth += 1
+                    state.depth += 1
 
-                # TODO: temporary avoid circular traverse
-                if state.pc == 0:
-                    if temp_flag == False:
-                        temp_flag = True
-                    else:
-                        logger.warning("circular detected")
-                        continue
+                    # TODO: temporary avoid circular traverse
+                    if state.pc == 0:
+                        if temp_flag == False:
+                            temp_flag = True
+                        else:
+                            logger.warning("circular detected")
+                            continue
 
-                # logger.info("execute at pc: %#x with depth %i." % (state.pc, depth))
+                    # logger.info("execute at pc: %#x with depth %i." % (state.pc, depth))
+                    success = self.exec_branch(state, txn)
+                    logger.info("state end with pc %#X %s" %(state.pc, self.sb.instruction_at(state.pc)))
+                    if self.sb.instruction_at(state.pc).name == "STOP":
+                        # TODO: 用返回值确认 这是函数正常结束 重新加入队列中
+                        state.pc = 0 # TODO: 说明：用选择子去跳转 所以从0开始
+                        preserved_states.append((state.depth, state))
 
-                success = self.exec_branch(state, txn)
+                    # success means copy a new state and not encounter any terminal instruction TODO:
+                    # state.print_exec_trace()
+                    if not success:
+                        pass
+                        # logger.info("execution failed")
 
-                # success means copy a new state and not encounter any terminal instruction TODO:
-                # state.print_exec_trace()
-                if not success:
-                    pass
-                    # logger.info("execution failed")
+                for bug in VulnTypes:
+                    if len(self.bugs[bug]) > 0:
+                        logger.critical(f"found {bug}")
 
-            for bug in VulnTypes:
-                if len(self.bugs[bug]) > 0:
-                    logger.critical(f"found {bug}")
+            # except StopIteration:
+            #     # TODO: 这样反复不是好选择 可以当做论文优化
+            #     txn_iter = self.fuzz.generate_txn_seq()
 
-        except Exception:
-            
-            self.observer.notify_statewindow_shutdown = True
-            self.cp.dump()
-            wt.join() # 一定要让join能把thread收回来 不然就没法中断了
-            console.print_exception(show_locals=True)
-            import sys
-            sys.exit(1)
-            
-        finally:
-            self.observer.notify_statewindow_shutdown = True
-            self.cp.dump()
-            wt.join()
+            except Exception:
+                
+                self.epilogue()  # 一定要让join能把thread收回来 不然就没法中断了
+                console.print_exception(show_locals=True)
+                import sys
+                sys.exit(1)
+                
+            [self.branch_queue.put(s) for s in preserved_states]
+
+        self.epilogue()
+
+    def epilogue(self) -> None:
+        self.observer.notify_statewindow_shutdown = True
+        self.cp.dump()
+        self.wt.join()    
 
     def exec_branch(self, state: State, txn: Transaction) -> bool:
         """Execute forward from a state, queuing new states if needed."""
@@ -535,7 +550,7 @@ class SymExecEngine:
             elif op == const.opcode.JUMP:
                 # $pc := dst
                 addr = state.stack_pop()
-                
+
                 if addr.symbolic:
                     self.observer.add_a_vuln(
                         VulnTypes.ARBITRARY_JUMP,

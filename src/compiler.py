@@ -168,7 +168,7 @@ class Artifact:
                     if not node.get("body"):
                         # interface funtion have no body
                         continue
-                    
+
                     for statement in node["body"]["statements"]:
                         if statement["nodeType"] == "ExpressionStatement":
                             expression = statement["expression"]
@@ -191,7 +191,7 @@ class Artifact:
                             dfa[fname]["r"].update(bfs(statement))
                 except KeyError as ke:
                     # for DEBUG
-                    # raise ke
+                    raise ke
                     import json
                     p = lambda js: print(json.dumps(js, indent=2))
                     import pdb; pdb.set_trace()
