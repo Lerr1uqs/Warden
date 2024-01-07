@@ -34,8 +34,7 @@ class ConstraintPersistor:
         <class 'claripy.ast.bool.Bool'>
         '''
 
-        # NOTE: 对每一个约束的hash判断是不是satisfiable
-        # TODO: 但是是不是要对当前的状态进行检测呢？
+        # NOTE: maybe need delete cache file avoid collision in different contract fuzz?
 
         # first initialize
         cn = ConstraintPersistor.CACHE_NAME
