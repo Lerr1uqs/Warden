@@ -19,9 +19,24 @@ class Fuzzer:
         pass
 
     def build_one_txn(self, fname: str) -> Transaction:
-        # TODO: 参数设置
-        # TODO: 自动设置
-        unsent_txn = self.con.functions[fname](TMPADDR, 0x0721, 0x0d00, b'\xff' * 32).build_transaction({
+        
+        fits = self.con.artifact.func_input_types[fname]
+        args = []
+
+        # NOTE: here insufficient type handle
+        for t in fits:
+            if t == "uint256":
+                args.append(0x0d000721)
+            elif t == "address":
+                args.append(TMPADDR)
+            elif t == "bytes":
+                args.append(b'\xff' * 0x20) # NOTE: only handle the 0x20 bytes
+            else:
+                raise TypeError(f"unhandled type {t}")
+                
+
+        import pdb; pdb.set_trace()
+        unsent_txn = self.con.functions[fname](*args).build_transaction({
             "to": TMPADDR,
             "gas": 123456
             # "from": TMPADDR,

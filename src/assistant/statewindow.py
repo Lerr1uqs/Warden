@@ -54,7 +54,7 @@ class StateWindow:
         try:
 
             if observer.debug:
-                StateWindow.__count_down = 1
+                StateWindow.__count_down = 3
             
             self._show_terminal(observer)
             
