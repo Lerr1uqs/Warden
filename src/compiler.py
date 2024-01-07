@@ -146,11 +146,10 @@ class Artifact:
                 break
 
         for node in nodes:
-            print(node["nodeType"])
             
             if node["nodeType"] == "VariableDeclaration":
                 storage_variable_names.add(node["name"])
-                print(f'[DBG] storage_variable_names append {node["name"]}')
+                # print(f'[DBG] storage_variable_names append {node["name"]}')
                 continue
 
             if node["nodeType"] == "FunctionDefinition":
