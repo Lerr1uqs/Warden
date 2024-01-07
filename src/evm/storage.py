@@ -34,44 +34,43 @@ class Storage:
         return hash(tuple(res))
 
 
-    def __getitem__(self, idx: Union[BV, int]) -> BV:
+    def __getitem__(self, idx: BV) -> BV:
 
-        # if type(idx) == CONCRETE:
-        #     idx = bvv(idx)
-        assert isinstance(idx, BV)
-        assert idx.concrete, repr(idx)
+        if not isinstance(idx, BV):
+            raise TypeError
+
+        if idx.symbolic: 
+            raise TypeError(repr(idx))
         
         slots = self._slots
-        # self._indexes_get.add(idx.concrete_value) TODO:
+        # self._indexes_get.add(idx.concrete_value) 
 
         if idx.symbolic:
-            # means I can found a arbitrary slot write?
-            raise NotImplementedError("TODO")
+            # means I can found a arbitrary slot read?
+            raise NotImplementedError("arbitrary slot read") # TODO: easy to check this vuln
         else:
             if isinstance(idx.concrete, bool):
                 idx = 1 if idx.concrete_value else 0
             elif isinstance(idx.concrete, int):
                 idx = idx.concrete_value
+            else:
+                raise TypeError(f"unhandled {type(idx.concrete_value)}")
 
         assert isinstance(idx, int)
 
-        logger.debug(slots)
-        return claripy.simplify(slots[idx])# TODO: what?
+        return claripy.simplify(slots[idx])
     
-    # TODO: 类型
-    # TOOD:
-    def __setitem__(self, idx: Union[BV, Integral], value: Union[BV, claripy.ast.Bool]) -> None: # TODO:类型
+    def __setitem__(self, idx: BV, value: Union[BV, claripy.ast.Bool]) -> None: # TODO:类型
 
-        assert isinstance(value, BV)
+        if not isinstance(idx, BV):
+            raise TypeError
+        
+        if idx.symbolic: 
+            raise NotImplementedError("arbitrary slot write") # TODO:
 
         if isinstance(value, claripy.ast.Bool):
             value = claripy.If(value, BVV1, BVV0)
 
-        # TODO: 转换函数
-        assert idx.concrete
-        # if isinstance(idx, BV):
-        #     assert idx.concrete
-        #     idx = idx.concrete_value
         if isinstance(idx.concrete, bool):
             idx = 1 if idx.concrete_value else 0
         elif isinstance(idx.concrete, int):
