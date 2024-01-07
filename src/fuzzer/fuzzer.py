@@ -15,11 +15,21 @@ class Fuzzer:
         pass
 
     def generate_txn_seq(self) -> Sequence[Transaction]:
-        # TODO: 
-        pass
+
+        fseqs = self.con.artifact.fseqorder
+        
+        if len(fseqs) == 0:
+            for fname in self.con.artifact.funcnames:
+                yield self.build_one_txn(fname)
+
+        else:
+            # TODO: 此处可以加入更多随机策略
+            for fnames in fseqs:
+                for fname in fnames:
+                    yield self.build_one_txn(fname)
 
     def build_one_txn(self, fname: str) -> Transaction:
-        
+
         fits = self.con.artifact.func_input_types[fname]
         args = []
 
