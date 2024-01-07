@@ -106,7 +106,7 @@ class SymExecEngine:
 
         assert not self.branch_queue.empty()
 
-        txn_iter = self.fuzz.generate_txn_seq() # TODO:
+        txn_iter = self.fuzz.generate_txn_seq()
         
         # wind thread
         wt = Thread(
@@ -174,6 +174,7 @@ class SymExecEngine:
                 
             [self.branch_queue.put(s) for s in preserved_states]
 
+        # txn sequence fuzz over
         self.epilogue()
 
     def epilogue(self) -> None:

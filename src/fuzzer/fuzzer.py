@@ -14,6 +14,7 @@ class Fuzzer:
         self.con = con
         pass
 
+    # TODO: add a prolong mechanism
     def generate_txn_seq(self) -> Sequence[Transaction]:
 
         fseqs = self.con.artifact.fseqorder
@@ -35,12 +36,16 @@ class Fuzzer:
 
         # NOTE: here insufficient type handle
         for t in fits:
+
             if t == "uint256":
                 args.append(0x0d000721)
+
             elif t == "address":
                 args.append(TMPADDR)
+
             elif t == "bytes":
                 args.append(b'\xff' * 0x20) # NOTE: only handle the 0x20 bytes
+                
             else:
                 raise TypeError(f"unhandled type {t}")
                 
