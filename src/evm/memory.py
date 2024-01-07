@@ -1,9 +1,6 @@
 from utils import *
-import bisect
 import copy
-# TODO:
-BV = claripy.ast.BV
-bvv = lambda v : claripy.BVV(v, 256)
+
 # NOTE: 内存的写入操作是找到freemem_pointer然后写4个字节过去 每一个slot还是32字节 所以这里只需要按地址编排写入位置即可 不需要管slot的索引了
 class Memory:
     def __init__(self) -> None:
@@ -48,27 +45,6 @@ class Memory:
             raise TypeError(f"length not match {v.length}")
 
         self._mem[addr] = v
-        
-
-    # def _read_slot(self, idx: int) -> BV:
-
-    #     if not isinstance(idx, int):
-    #         raise TypeError(f"idx must be int but found {type(idx)}")
-        
-    #     return self._mem.get(idx, claripy.BVV(0, 256))
-
-    # def _write_slot(self, idx: int, slot: BV) -> None:
-
-    #     if not isinstance(idx, int):
-    #         raise TypeError(f"idx must be int but found {type(idx)}")
-
-    #     if not isinstance(slot, BV):
-    #         raise TypeError(f"slot must be BV but found {type(slot)}")
-        
-    #     if slot.length != 256:
-    #         raise TypeError(f"wrong BV length {slot.length}")
-
-    #     self._mem[idx] = slot
 
 
     def write(self, addr: int, bytes_size: int, value: BV) -> None:
