@@ -1,6 +1,5 @@
+from evm   import w3
 from utils import *
-from evm import w3
-# TODO:
 '''
 {
 	"block.chainid": "3333",
@@ -16,37 +15,22 @@ from evm import w3
 	"block.basefee": "1 Wei (1)"
 }
 '''
-# from web3 import Web3, EthereumTesterProvider
-
-# w3 = Web3(EthereumTesterProvider())
-
-# # eth-tester populates accounts with test ether:
-# acct1 = w3.eth.accounts[0]
-
-# some_address = "0x0000000000000000000000000000000000000000"
-
-# # when using one of its generated test accounts,
-# # eth-tester signs the tx (under the hood) before sending:
-# tx_hash = w3.eth.send_transaction({
-#     "from": acct1,
-#     "to": some_address,
-#     "value": 123123123123123
-# })
-# tx = w3.eth.get_transaction(tx_hash)
 
 from binascii import unhexlify, hexlify
-from numbers import Integral
 
 def split_bytes32_into_list(byte_string: bytes) -> List[bytes]:
+    '''
+    split bytes into groups of 32 bytes, with zeros filling in parts less than 32
+    '''
     chunk_size = 32
-    # 使用 rjust 将 byte_string 填充到长度为 chunk_size 的整数倍
+
     if len(byte_string) % 32 != 0:
         pandding = len(byte_string) // chunk_size + 1
     else:
         pandding = len(byte_string) // chunk_size 
 
     padded_string = byte_string.rjust(pandding * chunk_size, b'\x00')
-    # 分割字节序列并返回结果
+
     return [padded_string[i:i+chunk_size] for i in range(0, len(padded_string), chunk_size)]
 
 class _Msg:
@@ -66,9 +50,8 @@ class _Msg:
 
         data = self.data[4:] # remove first 4-bytes signature
 
-        paramsize = len(func_param_types)
-        logger.debug(func_param_types)
-        logger.debug(hexlify(data).decode('utf-8'))
+        # logger.debug(func_param_types)
+        # logger.debug(hexlify(data).decode('utf-8'))
         
         '''
         ref: https://ethereum.stackexchange.com/questions/14037/what-is-msg-data
@@ -105,9 +88,9 @@ class _Msg:
                     (n // 32, ftype)
                 )
 
-            # TODO: uint256??
-            # TODO: int[] ???
-            elif ftype == "uint256": # TODO: int256?
+            # NOTE: not handle array e.g. int[] 
+            # NOTE: not handle other uintxx e.g. uint128
+            elif ftype == "uint256":
                 data32s[i] = claripy.BVS(f"input-{ftype}", 256)
 
             else:
@@ -118,13 +101,16 @@ class _Msg:
             length = int.from_bytes(data32s[i], byteorder='big')
 
             if ftype == "bytes" or ftype == "string":
-                assert length <= 32 # TODO: 当前不支持更长的bytes
-                # TODO: 是否需要长度校验？
+
+                if length > 32:
+                    raise NotImplementedError(f"not supperted length {length}")
+
                 data32s[i+1] = claripy.BVS(f"input-{ftype}", length * 8)
 
             elif ftype == "array":
                 for j in range(length):
-                    data32s[i+j+1] = claripy.BVS(f"input-{ftype}[{j}]", 256) # TODO: 注意int位数
+                    # NOTE: sanity check the int bits
+                    data32s[i+j+1] = claripy.BVS(f"input-{ftype}[{j}]", 256)
 
             else:
                 raise NotImplementedError(f"error type {ftype}")
@@ -141,9 +127,10 @@ class _Msg:
         return "\n".join(r)
 
 
-    def __getitem__(self, idx: Integral) -> BV:
+    def __getitem__(self, idx: int) -> BV:
 
-        assert isinstance(idx, Integral)
+        if not isinstance(idx, int):
+            raise TypeError
 
         ret = self.data32s[idx]
 
