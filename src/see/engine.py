@@ -83,7 +83,8 @@ class SymExecEngine:
             return
         
         logger.debug(s.solver.constraints)
-        # TODO: 缓存机制和计时计数可能有冲突
+        
+        # NOTE: cache machenism maybe conflict with perf counter, so I add a swicth for ConstraintPersistor
         with ConstraintEvalNotifier(self.observer, s.solver.constraints):
             if (res := self.cp.find_constraint_cache(s.solver.constraints)) is not None:
                 if res == False:
@@ -98,6 +99,7 @@ class SymExecEngine:
                     return
 
         logger.debug(f"add new constraint cache for {s.solver.constraints}")
+        
         self.cp.add_constraint_cache(s.solver.constraints, True)
         self.states_hash_seen.add(hash(s))
         # 默认小顶堆
