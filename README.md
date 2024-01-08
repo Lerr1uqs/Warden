@@ -52,6 +52,7 @@ notes that test function name must starts with "test_"
 - [ ] 总用时
 - [ ] 版本控制器和perf
 - [ ] 漏洞detect模块化 分析状态
+- [ ] 任意Storage写的判定 可能需要格外的一点heuristic的方法
 
 # NOTE:
 暂未考虑constructor, 因为这涉及到deploycode的初始化问题和调用序列生成这两块 还有最初的状态初始化，不过我心情好可能就写下把
