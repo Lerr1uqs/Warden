@@ -55,6 +55,8 @@ notes that test function name must starts with "test_"
 - [ ] 任意Storage写的判定 可能需要格外的一点heuristic的方法
 
 # NOTE:
-暂未考虑constructor, 因为这涉及到deploycode的初始化问题和调用序列生成这两块 还有最初的状态初始化，不过我心情好可能就写下把
+- 暂未考虑constructor, 因为这涉及到deploycode的初始化问题和调用序列生成这两块 还有最初的状态初始化，不过我心情好可能就写下把
+- 暂未考虑函数可视性的问题
+
 # 论文idea
 - [ ] 考虑求解的时机 没必要一直保持符号化约束 在某段事件之后可以将符号化转换为具体值
