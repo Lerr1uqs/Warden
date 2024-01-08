@@ -20,14 +20,15 @@ class Fuzzer:
         fseqs = self.con.artifact.fseqorder
         
         if len(fseqs) == 0:
-            for fname in self.con.artifact.funcnames:
+            for fname in self.con.artifact.funcnames * 3: # prelong triple
                 yield self.build_one_txn(fname)
 
         else:
             # TODO: 此处可以加入更多随机策略
-            for fnames in fseqs:
-                for fname in fnames:
-                    yield self.build_one_txn(fname)
+            for i in range(1, 4):
+                for fnames in fseqs:
+                    for fname in fnames * i: # prelong up to triple
+                        yield self.build_one_txn(fname)
 
     def build_one_txn(self, fname: str) -> Transaction:
 

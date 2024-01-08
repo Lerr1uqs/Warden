@@ -106,9 +106,16 @@ class Observer:
                 
         return hit_count / self._total_cov_count
 
+    __vuln_at_pc = [] # avoid repeat vulns 
+
     def add_a_vuln(self, vuln: VulnTypes, state: State) -> None:
 
         assert isinstance(vuln, VulnTypes)
+
+        if state.pc in Observer.__vuln_at_pc:
+            return
+        
+        Observer.__vuln_at_pc.append(state.pc)
         
         Observer.__new_vuln_found = True # update for query
 

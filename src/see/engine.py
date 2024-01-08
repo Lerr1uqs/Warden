@@ -38,7 +38,7 @@ class SymExecEngine:
                   
         self.tracer                             = [] # for debug
         self.fuzz                               = Fuzzer(con)
-        self.bugs: Dict[VulnTypes, List[State]] = defaultdict(lambda: [])
+        self.bugs: Dict[VulnTypes, List[State]] = defaultdict(lambda: []) # TODO: 没用到？
         self.observer                           = Observer(self.sb.instructions)
 
         self.add_branch(State(con)) # initial state 
