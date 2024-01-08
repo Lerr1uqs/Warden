@@ -2,6 +2,7 @@
     symbolic execute engine
 '''
 import numbers
+import random
 import const
 import math
 import pdb
@@ -23,6 +24,38 @@ from .state       import State # TEMP:
 from utils        import *
 
 console = Console()
+
+def calculate_bv_args_leafnode(bv: BV) -> int:
+    '''
+    calculate leaf node number in bv args by bfs
+    '''
+
+    if not isinstance(bv, BV):
+        raise TypeError
+    
+    nbr = 0
+    q = Queue()
+
+    # NOTE: <BV256 0x0>.args = (0, 256) so can't use len(BVV(0, 256).args) to determine whether leaf node
+
+    if bv.op in ["BVV", "BVS"]:
+        q.put(bv)
+    else:
+        for seed in bv.args:
+            q.put(seed)
+
+    while q.qsize() > 0:
+
+        cur: BV = q.get()
+
+        if cur.op in ["BVV", "BVS"]:
+            nbr += 1
+        else:
+            for arg in cur.args:
+                q.put(arg)
+            
+    return nbr
+
 
 class SymExecEngine:
     
@@ -48,16 +81,17 @@ class SymExecEngine:
         '''
         fuzz a var and generate corresponding state for this variable
         '''
-        raise NotImplementedError
         logger.critical("add_for_fuzz")
+
         # TODO: sketchy fuzz strategy
         to_try = set()
-        nb_random = 0
-        for t in tries:  # pylint:disable=invalid-name
+        nb_random = random.randint(1, 5) # TODO:
+        
+        for t in tries:
             if isinstance(t, numbers.Number) and s.solver.solution(var, t):
                 to_try.add(t)
             elif t is min:
-                to_try.add(self.solver.min(var))
+                to_try.add(s.solver.min(var))
             elif t is max:
                 to_try.add(s.solver.max(var))
             elif t is None:
@@ -65,9 +99,10 @@ class SymExecEngine:
         if nb_random:
             to_try |= set(s.solver.eval(var, nb_random))
 
-        s.depth += (
-            1 if len(to_try) == 1 else 10 # TODO:
-        )  # Lower the priority of what we got by fuzzing.
+        # s.depth += (
+        #     1 if len(to_try) == 1 else 10 # TODO:
+        # )  # Lower the priority of what we got by fuzzing.
+
         for value in to_try:
             new_state = s.clone()
             new_state.solver.add(var == value)
@@ -75,7 +110,8 @@ class SymExecEngine:
 
 
     def add_branch(self, s: State) -> None:
-
+        
+        logger.debug(f"before downsize and simplify {s.solver.constraints}")
         s.solver.downsize()
         s.solver.simplify()
 
@@ -86,7 +122,7 @@ class SymExecEngine:
         logger.debug(s.solver.constraints)
         
         # NOTE: cache machenism maybe conflict with perf counter, so I add a swicth for ConstraintPersistor
-        with ConstraintEvalNotifier(self.observer, s.solver.constraints):
+        with ConstraintEvalNotifier(self.observer, s.solver.constraints) as cen:
             if (res := self.cp.find_constraint_cache(s.solver.constraints)) is not None:
                 if res == False:
                     logger.warning("check cache found unsatistiable") # TODO: 晚点移除
@@ -99,6 +135,10 @@ class SymExecEngine:
                     logger.warning(f"state can't satisfiable {s.solver.constraints}")# TODO: 晚点转换为debug
                     return
 
+        if cen.lapse > 20:
+            self.observer.notify_statewindow_shutdown = True
+            import pdb; pdb.set_trace()
+            
         logger.debug(f"add new constraint cache for {s.solver.constraints}")
 
         self.cp.add_constraint_cache(s.solver.constraints, True)
@@ -181,7 +221,11 @@ class SymExecEngine:
     def epilogue(self) -> None:
         self.observer.notify_statewindow_shutdown = True
         self.cp.dump()
-        self.wt.join()    
+        self.wt.join() 
+
+    # TEMP
+    # def temp_fuzz(self, state: State, bv: BV) -> None:
+
 
     def exec_branch(self, state: State, txn: Transaction) -> bool:
         """Execute forward from a state, queuing new states if needed."""
@@ -269,9 +313,12 @@ class SymExecEngine:
                         raise RuntimeError("unhandled divisor")
 
                 else:
-                    state.stack_push(
-                        s0 // s1
-                    )
+                    # if s0.symbolic and s1.symbolic:
+                        # self.observer.notify_statewindow_shutdown = True
+                        # import pdb; pdb.set_trace()
+                    
+                    e = s0 / s1
+                    state.stack_push(e)
 
                 # try:
                 #     s1 = state.find_one_solution(s1)  # pylint:disable=invalid-name 获得一个具体值
@@ -308,6 +355,10 @@ class SymExecEngine:
                 # s0 % s1
                 [s0, s1] = state.stack_pop(2)
                 if s1.concrete:
+                    # 实验性: 如果s0的约束比较大 这里考虑化简
+                    if calculate_bv_args_leafnode(s0) > 3:
+                        self.add_for_fuzz(state, s0)
+
                     mod = s1.concrete_value
                     state.stack_push(
                         s0 % mod
@@ -572,6 +623,14 @@ class SymExecEngine:
                     raise NotImplementedError("arbitrary jump")
 
                 elif cond.symbolic:
+                    # 这部分可以记录成优化点 放到每一个条件判断的地方
+                    if cond.op == "__or__":
+                        # NOTE: 在solidity中没有bitor和逻辑or的区别 但是这两个的运算在z3中就差很多了
+                        # optmize here for time-comsuming up to 22s
+                        a0, a1 = cond.args[0], cond.args[1]
+
+                        if a0.op == "If" and a1.op == "If":
+                            cond = claripy.Or(a0, a1)
 
                     logger.debug(f"fork at {hex(state.pc)}")
                     
