@@ -108,7 +108,19 @@ class Observer:
                 
         return hit_count / self._total_cov_count
 
+    '----------------------------------VULN CATALOG----------------------------------------'
+
     __vuln_at_pc = [] # avoid repeat vulns 
+
+    @property
+    def vulnerabilities(self) -> Dict[VulnTypes, int]:
+        
+        vulns = {}
+        
+        for t in VulnTypes:
+            vulns[t] = len(self._vulns[t])
+
+        return vulns
 
     def add_a_vuln(self, vuln: VulnTypes, state: State) -> None:
 
@@ -124,6 +136,8 @@ class Observer:
         self._vulns[vuln].append(
             deepcopy(state)
         )
+
+    '---------------------------------------------------------------------------------'
 
     __cur_evaluating_constraint = "None"
     __cur_evaluating_state = "Run Symbolic Engine..."
