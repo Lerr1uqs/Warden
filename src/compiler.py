@@ -8,6 +8,7 @@ import json
 import os
 
 from collections import defaultdict, deque
+from copy        import deepcopy
 from binascii    import unhexlify
 from pathlib     import Path
 from web3        import Web3
@@ -21,15 +22,27 @@ def bfs(root: dict) -> List[str]:
     res   = []
 
     while len(queue) != 0:
+
         e = queue.popleft()
+        
+        if type(e) in [int, str, bool]:
+            continue
 
-        if e.get("nodeType") and e["nodeType"] == "Identifier":
-            res.append(e["name"])
+        elif type(e) == list:
+            for i in e:
+                queue.append(i)
 
-        else:
-            for k, v in e.items():
-                if type(v) == dict:
+        elif type(e) == dict:
+
+            if e.get("nodeType") and e["nodeType"] == "Identifier":
+                res.append(e["name"])
+
+            else:
+                for k, v in e.items():
                     queue.append(v)
+        else:
+            raise TypeError(f"unhandled type{type(e)}")
+
 
     return res
 
@@ -202,34 +215,51 @@ class Artifact:
         self.dfa = dfa
 
         graph = nx.DiGraph()
-        fnames = []
+        # fnames = []
 
         # all function nodes
-        for fname in dfa.keys():
+        # for fname in dfa.keys():
+            # filted internal function like fallback withdraw etc.
+        for fname in self.funcnames:
             graph.add_node(fname)
-            fnames.append(fname)
+                # fnames.append(fname)
 
+        print(self.funcnames)
         # build the topology graph
-        for fname in fnames:
+        for fname in self.funcnames:
             for var in dfa[fname]["w"]:
-                for otherf in fnames:
+                for otherf in self.funcnames:
                     if otherf == fname:
                         continue
                     if var in dfa[otherf]["r"]:
                         # means F(fname) write a var which F(otherf) read
                         graph.add_edge(fname, otherf) # fname -> otherf
 
-        self.ftopo_graph = graph # function topology graph
+        # self.ftopo_graph = graph # function topology graph
 
+        # 划分为联通分量
+        connected_components = list(nx.connected_components(graph.to_undirected()))
+        
+        # 将联通分量转为列表
+        subgraphs: List[nx.DiGraph] = [graph.subgraph(component) for component in connected_components]
+
+        # NOTE: shallow copy : each_indegree = [{}] * len(subgraphs) # fname -> indegree
         # calculate the oreder sequence according indegree
-        indegree = {} # fname -> indegree
-        for fname in fnames:
-            # NOTE: I skips some function that don't affect the storage state
-            #       cuz I only analyze the state of a possible attack and not replicate the attack itself(e.g. actual transfer to attck)
-            if graph.in_degree(fname) == 0 and graph.out_degree(fname) == 0:
-                continue
+        each_indegree = [deepcopy({}) for _ in range(len(subgraphs))]  # fname -> indegree
 
-            indegree[fname] = graph.in_degree(fname)
+        for fname in self.funcnames:
+            print(fname)
+            # TODO: removed NOTE: I skips some function that don't affect the storage state
+
+            #       cuz I only analyze the state of a possible attack and not replicate the attack itself(e.g. actual transfer to attck)
+            # if graph.in_degree(fname) == 0 and graph.out_degree(fname) == 0:
+            #     continue
+            # TODO: 暂时跳过 readme 解释
+            for i, sg in enumerate(subgraphs):
+                if fname in sg.nodes:
+                    each_indegree[i][fname] = sg.in_degree(fname)
+                    break
+
 
         '''
         for example
@@ -254,22 +284,20 @@ class Artifact:
 
             return res
 
-        function_seq_order: List[List[str]] = []
+        # fso[subgraph_idx][indegree] = [fname ...]
+        function_seq_order: List[List[List[str]]] = [deepcopy([]) for _ in range(len(subgraphs))]
+
         try:
-            for i in range(0, max(indegree.values())+1):
-                fname_list = find_keys(indegree, i)
-                function_seq_order.append(fname_list)
+            for i, indegree in enumerate(each_indegree):
+                for j in range(0, max(indegree.values())+1):
+                    fname_list = find_keys(indegree, j)
+                    function_seq_order[i].append(fname_list)
     
-        except ValueError:
+        except ValueError as e:
             # not function depend on each other
-            pass
+            raise e
         
         self.fseqorder = function_seq_order # have possibility of empty
-
-        if ast["nodes"][1]["canonicalName"] == "ArbitraryJumpWithFuncSeqOrder":
-            # for DEBUG
-            pass
-            # import pdb; pdb.set_trace()
 
 
 class Compiler:

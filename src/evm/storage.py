@@ -5,7 +5,7 @@ BV = claripy.ast.BV
 from numbers import Integral
 from collections import defaultdict
 
-# storage的粒度比memory更细 是对slot进行265位的处理的
+# storage的粒度比memory更粗 是对slot进行265位的处理的
 class Storage:
     def __init__(self, address: int) -> None:
         # debug for storage allow uninit read
@@ -39,9 +39,6 @@ class Storage:
         if not isinstance(idx, BV):
             raise TypeError
 
-        if idx.symbolic: 
-            raise TypeError(repr(idx))
-        
         slots = self._slots
         # self._indexes_get.add(idx.concrete_value) 
 
@@ -49,9 +46,10 @@ class Storage:
             # means I can found a arbitrary slot read?
             raise NotImplementedError("arbitrary slot read") # TODO: easy to check this vuln
         else:
-            if isinstance(idx.concrete, bool):
+            if isinstance(idx.concrete_value, bool):
+                raise NotImplementedError
                 idx = 1 if idx.concrete_value else 0
-            elif isinstance(idx.concrete, int):
+            elif isinstance(idx.concrete_value, int):
                 idx = idx.concrete_value
             else:
                 raise TypeError(f"unhandled {type(idx.concrete_value)}")
@@ -60,7 +58,7 @@ class Storage:
 
         return claripy.simplify(slots[idx])
     
-    def __setitem__(self, idx: BV, value: Union[BV, claripy.ast.Bool]) -> None:
+    def __setitem__(self, idx: BV, value: BV) -> None:
 
         if not isinstance(idx, BV):
             raise TypeError
@@ -68,11 +66,10 @@ class Storage:
         if idx.symbolic: 
             raise NotImplementedError("arbitrary slot write") # TODO:
 
-        if isinstance(value, claripy.ast.Bool):
+        # if isinstance(value, claripy.ast.Bool):
+            # raise NotImplementedError
             value = claripy.If(value, BVV1, BVV0)
 
-        if isinstance(idx.concrete, bool):
-            idx = 1 if idx.concrete_value else 0
         elif isinstance(idx.concrete, int):
             idx = idx.concrete_value
         else:

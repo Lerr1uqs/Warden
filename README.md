@@ -36,7 +36,7 @@ nosetests tests
 notes that test function name must starts with "test_"
 
 # TODO:
-- [ ] 使用能够调度的queue
+- [ ] ~~使用能够调度的queue~~
 - [x] 更改环境 z3有问题
 - [x] 增加一个状态显示 如果pc很久没更新了说不定就是正在约束求解
 - [x] 调试模式
@@ -62,3 +62,4 @@ notes that test function name must starts with "test_"
 
 # 论文idea
 - [ ] 考虑求解的时机 没必要一直保持符号化约束 在某段事件之后可以将符号化转换为具体值
+- [ ] 有些函数没有依赖 有些函数就有 假设 A->B, C, D有四个函数三个依赖关系 就分别对三个依赖关系生成三个txn序列和三个初始化状态，不然很容易因为状态没有即使退出而导致在某个函数中反复符号执行带来的路径爆炸

@@ -45,6 +45,7 @@ class StateWindow:
             V.SELFDESTRUCT: colored("0", "green"),
             V.DELEGATECALL: colored("0", "green"),
             V.ARBITRARY_JUMP: colored("0", "green"),
+            V.ARBITRARY_SLOT_WRITE: colored("0", "green"),
         }
 
         pass
@@ -92,6 +93,7 @@ class StateWindow:
                 f'┃ >\t{VULN_DESC[V.SELFDESTRUCT]}     : {self._vulns[V.SELFDESTRUCT]:}'       + ' ' * 34 + '┃\n'
                 f'┃ >\t{VULN_DESC[V.DELEGATECALL]}     : {self._vulns[V.DELEGATECALL]:}'       + ' ' * 34 + '┃\n'
                 f'┃ >\t{VULN_DESC[V.ARBITRARY_JUMP]}   : {self._vulns[V.ARBITRARY_JUMP]:}'     + ' ' * 34 + '┃\n'
+                f'┃ >\t{VULN_DESC[V.ARBITRARY_SLOT_WRITE]}   : {self._vulns[V.ARBITRARY_SLOT_WRITE]:}'     + ' ' * 34 + '┃\n'
                 f'┗'                                                                           + '━' * 61 + '┛\n'
                 f'current evaluating constraint : {self.cur_evaluating_constraint}\n'
                 f'evaluating constraint average lapse: {self.average_constraint_eval_lapse}\n'
@@ -125,7 +127,7 @@ class StateWindow:
                 c = obs.vuln_count(v)
                 self._vulns[v] = colored(str(c), "red" if c > 0 else "green")
 
-            if obs.notify_statewindow_shutdown:
+            if obs.notify_statewindow_shutdown or Observer.stop:
                 self.__count_down -= 1
                 if self.__count_down == 0:
                     break

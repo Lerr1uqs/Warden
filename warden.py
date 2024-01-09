@@ -17,6 +17,7 @@ logger.add("loguru.log")
 Observer.enable_debug()
 
 con = Contract("All")
+# con = Contract("ArbiStorageWrite")
 # con = Contract("ArbitraryJumpWithFuncSeqOrder")
 # cfg = CFG(sb.bytecode) # TODO: runtime
 

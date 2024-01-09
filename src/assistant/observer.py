@@ -12,6 +12,8 @@ from copy import deepcopy
 class Observer:
 
     __debug = False
+
+    stop = False
     
     @classmethod
     def enable_debug(cls) -> None:

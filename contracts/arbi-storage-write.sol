@@ -10,8 +10,19 @@ contract ArbiStorageWrite {
     constructor() {
         owner = msg.sender;
     }
+    uint256 _asw_prev1;
+    uint256 _asw_prev2;
+
+    function asw_prev1(uint256 x) public {
+        _asw_prev1 = x ^ 0x0d00;
+    }
     
-    function a(uint256 idx, uint256 value) public {
+    function asw_prev2(uint256 x) public {
+        _asw_prev2 = x ^ 0x0721;
+    }
+    
+    function arbi_storage_write(uint256 idx, uint256 value) public {
+        require( _asw_prev1 + _asw_prev2 == 0x2887);
         assembly {
             let sl := array.slot
             sstore(add(sl, idx), value)

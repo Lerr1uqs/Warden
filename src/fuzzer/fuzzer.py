@@ -15,23 +15,31 @@ class Fuzzer:
         pass
 
     # TODO: add a prolong mechanism
-    def generate_txn_seq(self) -> Sequence[Transaction]:
+    def generate_txn_seq(self) -> List[List[Transaction]]:
 
         fseqs = self.con.artifact.fseqorder
         
-        if len(fseqs) == 0:
-            for fname in self.con.artifact.funcnames * 3: # prelong triple
-                yield self.build_one_txn(fname)
+        # a group for indenpendent functions
+        # e.g ((A, B), (C, D, E), (F))
+        res = []
 
-        else:
+        # fseq e.g: [[A, B], [], [C]] (C depend on A and B, AB indegree is 0, C indegree is 2)
+        for i, fseq in enumerate(fseqs):
+            res.append([])
             # TODO: 此处可以加入更多随机策略
-            for i in range(1, 4):
-                for fnames in fseqs:
-                    for fname in fnames * i: # prelong up to triple
-                        yield self.build_one_txn(fname)
+            # NOTE: 当依赖图中的节点较多的时候 对多数进行fuzz 较少的时候就只fuzz一两次
+            for fnames in fseq:
+                for j in range(1, len(fnames) + 1):
+                    for fname in fnames * j: # prelong up to triple
+                        res[i].append(self.build_one_txn(fname))
+        
+        return res
 
     def build_one_txn(self, fname: str) -> Transaction:
 
+        if type(fname) != str:
+            raise TypeError
+        
         fits = self.con.artifact.func_input_types[fname]
         args = []
 

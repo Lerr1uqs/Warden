@@ -9,14 +9,14 @@ import pdb
 
 from assistant    import Observer, ConstraintEvalNotifier
 from version      import VersionControl, Stage
-from queue        import PriorityQueue, Queue
 from persistence  import ConstraintPersistor
+from collections  import defaultdict, deque
 from disassembler import SolidityBinary
-from collections  import defaultdict
 from evm          import Transaction
 from assistant    import StateWindow
 from vulns        import VulnTypes
 from evm          import Contract
+from copy         import deepcopy
 from rich.console import Console
 from fuzzer       import Fuzzer
 from threading    import Thread
@@ -34,25 +34,25 @@ def calculate_bv_args_leafnode(bv: BV) -> int:
         raise TypeError
     
     nbr = 0
-    q = Queue()
+    q = deque()
 
     # NOTE: <BV256 0x0>.args = (0, 256) so can't use len(BVV(0, 256).args) to determine whether leaf node
 
     if bv.op in ["BVV", "BVS"]:
-        q.put(bv)
+        q.append(bv)
     else:
         for seed in bv.args:
-            q.put(seed)
+            q.append(seed)
 
-    while q.qsize() > 0:
+    while len(q) > 0:
 
-        cur: BV = q.get()
+        cur: BV = q.popleft()
 
         if cur.op in ["BVV", "BVS"]:
             nbr += 1
         else:
             for arg in cur.args:
-                q.put(arg)
+                q.append(arg)
             
     return nbr
 
@@ -60,8 +60,8 @@ def calculate_bv_args_leafnode(bv: BV) -> int:
 class SymExecEngine:
     
     def __init__(self, con: Contract) -> None:
-        # self.branch_queue = PriorityQueue() #TODO:
-        self.branch_queue                       = Queue() 
+        # self.branch_queue = PriorityQueue() # TODO:
+        self.branch_queue                       = deque() 
         self.sb                                 = con.sb
         self.states_hash_seen                   = set()
         # add a init state                  
@@ -74,7 +74,9 @@ class SymExecEngine:
         self.bugs: Dict[VulnTypes, List[State]] = defaultdict(lambda: []) # TODO: 没用到？
         self.observer                           = Observer(self.sb.instructions)
 
-        self.add_branch(State(con)) # initial state 
+        self.txnseqs = self.fuzz.generate_txn_seq()
+        self.init_state = [deepcopy(State(con)) for _ in range(len(self.txnseqs))]
+        # self.add_branch(State(con)) # initial state 
     
     # TEMP:
     def add_for_fuzz(self, s: State, var: BV, tries: List[Callable]=[]) -> None:
@@ -134,23 +136,21 @@ class SymExecEngine:
                     self.cp.add_constraint_cache(s.solver.constraints, False)
                     logger.warning(f"state can't satisfiable {s.solver.constraints}")# TODO: 晚点转换为debug
                     return
-
-        if cen.lapse > 20:
-            self.observer.notify_statewindow_shutdown = True
-            import pdb; pdb.set_trace()
             
         logger.debug(f"add new constraint cache for {s.solver.constraints}")
 
         self.cp.add_constraint_cache(s.solver.constraints, True)
         self.states_hash_seen.add(hash(s))
         # 默认小顶堆
-        self.branch_queue.put((s.depth, s))
+        self.branch_queue.append((s.depth, s))
     
     def execute(self):# NOTE: timeout
 
-        assert not self.branch_queue.empty()
+        # assert len(self.branch_queue) > 0
 
-        txn_iter = self.fuzz.generate_txn_seq()
+        # txn_iter = self.fuzz.generate_txn_seq()
+        print(self.txnseqs)
+        # import pdb;pdb.set_trace()
         
         # wind thread
         wt = Thread(
@@ -162,58 +162,75 @@ class SymExecEngine:
 
         from see.state import STATE_COUNTER 
         
-        for txn in txn_iter:
+        # each txns according a data dependency subgraph function
+        for i, txns in enumerate(self.txnseqs):
 
-            logger.debug(f"execute transaction {txn}")
-            preserved_states = []
+            self.branch_queue = deque() # clear the queue
+            self.add_branch(self.init_state[i])
 
-            # NOTE: exhaust the states for one transaction
-            try:
-                while not self.branch_queue.empty():
-                    # NOTE: qsize only work in single-thread environment
-                    logger.debug(f"self.branch_queue len is {self.branch_queue.qsize()}")
-                    logger.debug(f"total states cound is is {STATE_COUNTER}")
-                    self.observer.cur_state_count = self.branch_queue.qsize()
-                    self.observer.total_state_count = STATE_COUNTER
+            for txn in txns:
 
-                    depth: int; state: State
-                    depth, state = self.branch_queue.get()
+                logger.debug(f"execute transaction {txn}")
+                preserved_states = []
 
-                    state.depth += 1
+                # NOTE: 当前的Txn可能会通过漏洞会消耗掉队列中的状态
+                # snapshoot = deepcopy(self.branch_queue)
+                    
+                # NOTE: exhaust the states for one transaction
+                try:
 
-                    # # NOTE: maybe need avoid circular traverse?
+                    while len(self.branch_queue) > 0:
 
-                    # logger.info("execute at pc: %#x with depth %i." % (state.pc, depth))
-                    success = self.exec_branch(state, txn)
-                    logger.info("state end with pc %#X %s" %(state.pc, self.sb.instruction_at(state.pc)))
+                        # NOTE: qsize only work in single-thread environment
+                        logger.debug(f"self.branch_queue len is {len(self.branch_queue)}")
+                        logger.debug(f"total states cound is is {STATE_COUNTER}")
+                        
+                        self.observer.cur_state_count = len(self.branch_queue)
+                        self.observer.total_state_count = STATE_COUNTER
 
-                    if self.sb.instruction_at(state.pc).name == "STOP":
+                        depth: int; state: State
+                        depth, state = self.branch_queue.popleft()
+
+                        state.depth += 1
+
+                        # # NOTE: maybe need avoid circular traverse?
+
+                        # logger.info("execute at pc: %#x with depth %i." % (state.pc, depth))
+
+                        state_stoped = self.exec_branch(state, txn)
+                        logger.info("state end with pc %#X %s" %(state.pc, self.sb.instruction_at(state.pc)))
+
                         # TODO: 用返回值确认 这是函数正常结束 重新加入队列中
-                        state.pc = 0 # TODO: 说明：用选择子去跳转 所以从0开始
-                        preserved_states.append((state.depth, state))
+                        if state_stoped:
+                            state.pc = 0 # TODO: 说明：用选择子去跳转 所以从0开始
+                            preserved_states.append((state.depth, state))
 
-                    # success means copy a new state and not encounter any terminal instruction TODO:
-                    # state.print_exec_trace()
-                    if not success:
-                        pass
-                        # logger.info("execution failed")
+                        # success means copy a new state and not encounter any terminal instruction TODO:
+                        # state.print_exec_trace()
+                        # if not state_stoped:
+                        #     pass
+                            # logger.info("execution failed")
+                    
+                    # if len(self.branch_queue) is 0:
+                    #     self.branch_queue = snapshoot
 
-                for bug in VulnTypes:
-                    if len(self.bugs[bug]) > 0:
-                        logger.critical(f"found {bug}")
+                    #TODO: remove?
+                    for bug in VulnTypes:
+                        if len(self.bugs[bug]) > 0:
+                            logger.critical(f"found {bug}")
 
-            # except StopIteration:
-            #     # TODO: 这样反复不是好选择 可以当做论文优化
-            #     txn_iter = self.fuzz.generate_txn_seq()
+                # except StopIteration:
+                #     # TODO: 这样反复不是好选择 可以当做论文优化
+                #     txn_iter = self.fuzz.generate_txn_seq()
 
-            except Exception:
-                
-                self.epilogue()  # 一定要让join能把thread收回来 不然就没法中断了
-                console.print_exception(show_locals=True)
-                import sys
-                sys.exit(1)
-                
-            [self.branch_queue.put(s) for s in preserved_states]
+                except Exception:
+                    
+                    self.epilogue()  # 一定要让join能把thread收回来 不然就没法中断了
+                    console.print_exception(show_locals=True)
+                    import sys
+                    sys.exit(1)
+                    
+                [self.branch_queue.append(s) for s in preserved_states]
 
         # txn sequence fuzz over
         self.epilogue()
@@ -233,7 +250,7 @@ class SymExecEngine:
 
         while True:
             if state.pc > self.sb.end_addr:
-                return True
+                return False
             
             state.exec_addrs.append(state.pc)
             # need to setup a map in pc => inst or 
@@ -650,7 +667,7 @@ class SymExecEngine:
 
                     self.add_branch(state)
 
-                    return True
+                    return False
                 
                 else: # addr and cond neither symbolic
                     if cond.concrete_value == 0:
@@ -723,7 +740,8 @@ class SymExecEngine:
 
             elif op == const.opcode.RETURN:
                 # return mem[ost:ost+len-1]
-                return True
+                raise NotImplementedError
+                return False
 
             elif op == const.opcode.CALLDATALOAD:
                 # TODO： reconstruct
@@ -891,6 +909,11 @@ class SymExecEngine:
             elif op == const.opcode.SLOAD:# stack.push(storage[key])
 
                 key = state.stack_pop()
+
+                # TODO: remove
+                # if state.pc == 0xb9: 
+                #     Observer.stop = True
+                #     import pdb; pdb.set_trace()
                 
                 if key.concrete:
                     state.stack_push(
@@ -926,22 +949,15 @@ class SymExecEngine:
                 if key.concrete:
                     state.storage[key] = value
                 else:
-                    raise NotImplementedError("idx is symbolic arbi write?")
-                # # TODO: 如果能写一个没读过的 算不算任意写呢？（好像不算 但是读才算
-                # for w_key, w_value in state.storage_written.items():
-                #     read_from_written = [w_key == key]
-                #     if state.solver.satisfiable(extra_constraints=read_from_written):
-                #         new_state = state.clone()
-                #         new_state.solver.add(read_from_written)
-                #         new_state.storage_written[w_key] = value
-                #         self.add_branch(new_state)
-                #     state.solver.add(w_key != key)
-                # # 如果能写一个没写过的地方
-                # if state.solver.satisfiable():
-                #     assert key not in state.storage_written
-                #     state.storage_written[key] = value
-                #     self.add_branch(state)
-                # return
+                    if state.solver.satisfiable(extra_constraints=[key == ARBITRARY_SLOT_WRITE_IDX]):
+                        self.observer.add_a_vuln(
+                            VulnTypes.ARBITRARY_SLOT_WRITE,
+                            state
+                        )
+
+                        return False
+                    else:
+                        raise NotImplementedError("TODO:不满足攻击条件 随便fuzz一下就行")
 
             elif op == const.opcode.CALL:
                 raise NotImplementedError
@@ -1014,7 +1030,7 @@ class SymExecEngine:
                         )
 
                         state.pc += 1
-                        return
+                        return False
                     else:
                         raise RuntimeError("symbolic but not satisfiable?")
                 
@@ -1070,7 +1086,7 @@ class SymExecEngine:
                         # return True
                 # TODO: 0地址转账是ether frozen
                         
-                return True
+                return False
 
             elif op == const.opcode.REVERT:
                 return False
