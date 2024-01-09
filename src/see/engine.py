@@ -317,8 +317,7 @@ class SymExecEngine:
                         # self.observer.notify_statewindow_shutdown = True
                         # import pdb; pdb.set_trace()
                     
-                    e = s0 / s1
-                    state.stack_push(e)
+                    state.stack_push(s0 // s1)
 
                 # try:
                 #     s1 = state.find_one_solution(s1)  # pylint:disable=invalid-name 获得一个具体值
@@ -482,20 +481,24 @@ class SymExecEngine:
                 )
                 
             elif op == const.opcode.AND:
+                # bitwise AND
 
                 [s0, s1] = state.stack_pop(2)
                 # TEMP: workaround for claripy bug 
                 # REF: https://github.com/angr/claripy/issues/383
 
+                # optimize condition If(c1, 1, 0) and If(c2, 1, 0)
                 if s0.op == "If" and s1.op == "If":
-                    
-                    state.stack_push(
-                        claripy.If(
-                            claripy.And((s0 != BVV0), (s1 != BVV0)), 
-                            BVV1, 
-                            BVV0
+                    if s0.args[1].concrete_value == 1 and s0.args[2].concrete_value == 0 and \
+                       s1.args[1].concrete_value == 1 and s1.args[2].concrete_value == 0:
+                                            
+                        state.stack_push(
+                            claripy.If(
+                                claripy.And((s0 != BVV0), (s1 != BVV0)), 
+                                BVV1, 
+                                BVV0
+                            )
                         )
-                    )
                     
                 else:
                     state.stack_push(s0 & s1)
@@ -623,7 +626,7 @@ class SymExecEngine:
                     raise NotImplementedError("arbitrary jump")
 
                 elif cond.symbolic:
-                    # 这部分可以记录成优化点 放到每一个条件判断的地方
+                    # TODO: 这部分可以记录成优化点 放到每一个条件判断的地方
                     if cond.op == "__or__":
                         # NOTE: 在solidity中没有bitor和逻辑or的区别 但是这两个的运算在z3中就差很多了
                         # optmize here for time-comsuming up to 22s
