@@ -60,7 +60,6 @@ def calculate_bv_args_leafnode(bv: BV) -> int:
 class SymExecEngine:
     
     def __init__(self, con: Contract) -> None:
-        # self.branch_queue = PriorityQueue() # TODO:
         self.branch_queue                       = deque() 
         self.sb                                 = con.sb
         self.states_hash_seen                   = set()
@@ -71,11 +70,10 @@ class SymExecEngine:
                   
         self.tracer                             = [] # for debug
         self.fuzz                               = Fuzzer(con)
-        self.bugs: Dict[VulnTypes, List[State]] = defaultdict(lambda: []) # TODO: 没用到？
         self.observer                           = Observer(self.sb.instructions)
 
-        self.txnseqs = self.fuzz.generate_txn_seq()
-        self.init_state = [deepcopy(State(con)) for _ in range(len(self.txnseqs))]
+        self.txnseqs                            = self.fuzz.generate_txn_seq()
+        self.init_state                         = [deepcopy(State(con)) for _ in range(len(self.txnseqs))]
         # self.add_branch(State(con)) # initial state 
     
     # TEMP:
@@ -101,10 +99,6 @@ class SymExecEngine:
         if nb_random:
             to_try |= set(s.solver.eval(var, nb_random))
 
-        # s.depth += (
-        #     1 if len(to_try) == 1 else 10 # TODO:
-        # )  # Lower the priority of what we got by fuzzing.
-
         for value in to_try:
             new_state = s.clone()
             new_state.solver.add(var == value)
@@ -127,32 +121,22 @@ class SymExecEngine:
         with ConstraintEvalNotifier(self.observer, s.solver.constraints) as cen:
             if (res := self.cp.find_constraint_cache(s.solver.constraints)) is not None:
                 if res == False:
-                    logger.warning("check cache found unsatistiable") # TODO: 晚点移除
                     return
                 
-                logger.info(f"{s.solver.constraints} hit local cache") # TEMP:
+                logger.debug(f"{s.solver.constraints} hit local cache")
             else:
                 if not s.solver.satisfiable():
                     self.cp.add_constraint_cache(s.solver.constraints, False)
-                    logger.warning(f"state can't satisfiable {s.solver.constraints}")# TODO: 晚点转换为debug
+                    logger.debug(f"state can't satisfiable {s.solver.constraints}")
                     return
             
-        logger.debug(f"add new constraint cache for {s.solver.constraints}")
-
         self.cp.add_constraint_cache(s.solver.constraints, True)
         self.states_hash_seen.add(hash(s))
-        # 默认小顶堆
         self.branch_queue.append((s.depth, s))
     
     def execute(self):# NOTE: timeout
-
-        # assert len(self.branch_queue) > 0
-
-        # txn_iter = self.fuzz.generate_txn_seq()
-        print(self.txnseqs)
-        # import pdb;pdb.set_trace()
         
-        # wind thread
+        # window thread
         wt = Thread(
             target=StateWindow().show_terminal, 
             args=(self.observer,)
@@ -168,22 +152,16 @@ class SymExecEngine:
             self.branch_queue = deque() # clear the queue
             self.add_branch(self.init_state[i])
 
-            for txn in txns:
+            for txn in txns: # Transaction execution of a set of functions with data dependencies
 
                 logger.debug(f"execute transaction {txn}")
                 preserved_states = []
 
-                # NOTE: 当前的Txn可能会通过漏洞会消耗掉队列中的状态
-                # snapshoot = deepcopy(self.branch_queue)
-                    
+                # NOTE: the state not perserved if it encounter a vuln 
                 # NOTE: exhaust the states for one transaction
                 try:
 
                     while len(self.branch_queue) > 0:
-
-                        # NOTE: qsize only work in single-thread environment
-                        logger.debug(f"self.branch_queue len is {len(self.branch_queue)}")
-                        logger.debug(f"total states cound is is {STATE_COUNTER}")
                         
                         self.observer.cur_state_count = len(self.branch_queue)
                         self.observer.total_state_count = STATE_COUNTER
@@ -193,44 +171,23 @@ class SymExecEngine:
 
                         state.depth += 1
 
-                        # # NOTE: maybe need avoid circular traverse?
-
-                        # logger.info("execute at pc: %#x with depth %i." % (state.pc, depth))
-
+                        # NOTE: maybe need avoid circular traverse?
                         state_stoped = self.exec_branch(state, txn)
-                        logger.info("state end with pc %#X %s" %(state.pc, self.sb.instruction_at(state.pc)))
 
-                        # TODO: 用返回值确认 这是函数正常结束 重新加入队列中
+                        # if state end with STOP and pending trasactions remained, save current state as seed state for subsequent transactions 
                         if state_stoped:
-                            state.pc = 0 # TODO: 说明：用选择子去跳转 所以从0开始
+                            state.pc = 0 # use selector to jump where transaction specific function, so reset pc to zero
                             preserved_states.append((state.depth, state))
-
-                        # success means copy a new state and not encounter any terminal instruction TODO:
-                        # state.print_exec_trace()
-                        # if not state_stoped:
-                        #     pass
-                            # logger.info("execution failed")
-                    
-                    # if len(self.branch_queue) is 0:
-                    #     self.branch_queue = snapshoot
-
-                    #TODO: remove?
-                    for bug in VulnTypes:
-                        if len(self.bugs[bug]) > 0:
-                            logger.critical(f"found {bug}")
-
-                # except StopIteration:
-                #     # TODO: 这样反复不是好选择 可以当做论文优化
-                #     txn_iter = self.fuzz.generate_txn_seq()
 
                 except Exception:
                     
-                    self.epilogue()  # 一定要让join能把thread收回来 不然就没法中断了
+                    self.epilogue()  # take subthread back otherwise can't see the print log
                     console.print_exception(show_locals=True)
                     import sys
                     sys.exit(1)
                     
-                [self.branch_queue.append(s) for s in preserved_states]
+                for s in preserved_states:
+                    self.branch_queue.append(s)
 
         # txn sequence fuzz over
         self.epilogue()
@@ -240,15 +197,12 @@ class SymExecEngine:
         self.cp.dump()
         self.wt.join() 
 
-    # TEMP
-    # def temp_fuzz(self, state: State, bv: BV) -> None:
-
-
     def exec_branch(self, state: State, txn: Transaction) -> bool:
         """Execute forward from a state, queuing new states if needed."""
         # logger.debug("Constraints: %s" % state.solver.constraints)
 
         while True:
+
             if state.pc > self.sb.end_addr:
                 return False
             
@@ -256,23 +210,17 @@ class SymExecEngine:
             # need to setup a map in pc => inst or 
             # provide a method in sb for next_inst call
             curinst = self.sb.instruction_at(state.pc)
-            # curinst = self.sb.instructions[state.pc]
-            op = curinst.opcode
-            self.tracer.append(
-                "{:08x}: {}".format(state.pc, curinst)
-            )
-            # self.coverage[state.pc] += 1
+            op      = curinst.opcode
+            
+            self.tracer.append("{:08x}: {}".format(state.pc, curinst))
+
+            self.observer.hit_at(state.pc)
 
             logger.debug("------- NEW STEP -------")
             logger.debug("PC: %#x, op: %#x(%s)" % (state.pc, op, curinst.name))
             logger.debug("\nStorage: %s\n" % state.storage)
             logger.debug("\nStack: %s" % state.stack)
 
-            assert all(
-                isinstance(i, claripy.ast.base.BV) for i in state.stack
-            ), "The stack musty only contains claripy BV's"
-
-            self.observer.hit_at(state.pc)
 
             bps = []
             for bp in bps:
@@ -363,7 +311,7 @@ class SymExecEngine:
                 # try:
                 #     s1 = state.find_one_solution(s1)
                 # except MultipleSolutionsError:
-                #     state.stack_push(claripy.If(s1 == 0, BVV0, s0.SDiv(s1))) # TODO: 除数为0
+                #     state.stack_push(claripy.If(s1 == 0, BVV0, s0.SDiv(s1))) 
                 # else:
                 #     state.stack_push(BVV0 if s1 == 0 else s0.SDiv(s1))
 
@@ -388,7 +336,7 @@ class SymExecEngine:
                 try:
                     s1 = state.find_one_solution(s1)
                 except MultipleSolutionsError:
-                    state.stack_push(claripy.If(s1 == 0, BVV0, s0.SMod(s1))) # TODO: mod 0
+                    state.stack_push(claripy.If(s1 == 0, BVV0, s0.SMod(s1)))
                 else:
                     state.stack_push(BVV0 if s1 == 0 else s0.SMod(s1))
 
@@ -468,7 +416,7 @@ class SymExecEngine:
                 
             elif op == const.opcode.SIGNEXTEND: # sign extend s1 from (s0+1) bytes to 32 bytes
                 raise NotImplementedError
-                # TODO: Use Claripy's SignExt that should do exactly that.
+                # needtodo: Use Claripy's SignExt that should do exactly that.
                 [s0, s1] = state.stack_pop(2)
                 # s0 is the number of bits. s1 the number we want to extend.
                 s0 = state.find_one_solution(s0)
@@ -505,6 +453,7 @@ class SymExecEngine:
                 # REF: https://github.com/angr/claripy/issues/383
 
                 # optimize condition If(c1, 1, 0) and If(c2, 1, 0)
+                # bitwidth OR operation is time-consuming
                 if s0.op == "If" and s1.op == "If":
                     if s0.args[1].concrete_value == 1 and s0.args[2].concrete_value == 0 and \
                        s1.args[1].concrete_value == 1 and s1.args[2].concrete_value == 0:
@@ -545,9 +494,10 @@ class SymExecEngine:
 
             elif op == const.opcode.GAS:
                 # gasRemaining
-                # TODO:貌似不影响什么 随便给个值
-                # raise NotImplementedError
-                state.stack_push(claripy.BVV(10000000, 256))
+                # NOTE: imprecise GAS
+                state.stack_push(
+                    claripy.BVV(txn.gas, 256)
+                )
 
             elif op == const.opcode.ADDRESS:
                 raise NotImplementedError
@@ -564,12 +514,6 @@ class SymExecEngine:
             elif op == const.opcode.BALANCE:
                 # addr.balance
                 raise NotImplementedError
-                addr = state.find_one_solution(state.stack_pop())# WHY?
-                if addr != solution(state.env.address):
-                    raise utils.InterpreterError(
-                        state, "Can only query balance of the current contract for now"
-                    )
-                state.stack_push(state.env.balance)
 
             elif op == const.opcode.ORIGIN:
                 raise NotImplementedError
@@ -580,9 +524,6 @@ class SymExecEngine:
                 state.stack_push(state.env.caller)
 
             elif op == const.opcode.CALLVALUE:
-                # raise NotImplementedError
-                # TODO: 没有fallback函数 如果有msg.value会导致revert
-                # state.stack_push(claripy.BVS(f"CALLVALUE[{state.pc}]", 256))# TODO: use Txn or Contract
                 state.stack_push(txn.value)
 
             elif op == const.opcode.BLOCKHASH:
@@ -650,7 +591,10 @@ class SymExecEngine:
                         a0, a1 = cond.args[0], cond.args[1]
 
                         if a0.op == "If" and a1.op == "If":
+                            # NOTE: 不需要两个If应该也能直接优化
                             cond = claripy.Or(a0, a1)
+                        else:
+                            cond = claripy.Or(a0 != BVV0, a1 != BVV0)
 
                     logger.debug(f"fork at {hex(state.pc)}")
                     
@@ -725,8 +669,6 @@ class SymExecEngine:
             elif op == const.opcode.SHA3:
                 raise NotImplementedError
 
-                fos = state.find_one_solution
-
                 s0 = state.stack_pop()
                 s1 = state.stack_pop()
 
@@ -764,22 +706,8 @@ class SymExecEngine:
                             txn.msg[i]
                         )
                     
-                    # return # TODO: why return? maybe state changed
                 else:
                     raise NotImplementedError
-                # TODO: check following
-                    try:
-                        index_sol = state.find_one_solution(index)
-                    except MultipleSolutionsError:
-                        state.stack_push(index)  # restore the stack
-                        # TODO: maybe use Calldata class be batter?
-                        CALLDATALOAD_INDEX_FUZZ = Todo()
-                        # self.add_for_fuzz(state, index, CALLDATALOAD_INDEX_FUZZ)
-                        self.add_for_fuzz(state, index)
-                        return False
-                    
-                    raise NotImplementedError
-                    state.stack_push(state.env.calldata.read(index_sol, 32))
 
             elif op == const.opcode.CALLDATASIZE:
                 state.stack_push(txn.msg.len)
@@ -798,7 +726,6 @@ class SymExecEngine:
                     raise NotImplementedError
                 
                 dstost, ost, size = dstost.concrete_value, ost.concrete_value, size.concrete_value
-                # TODO: can fuzz here?
                 
                 assert size == 32 # TODO: check 也许能把32改成循环
                 assert (ost - 4) % 32 == 0, "ost must be 4 + 32n cuz 4 is signature size"
@@ -819,61 +746,17 @@ class SymExecEngine:
 
             elif op == const.opcode.EXTCODESIZE:
                 raise NotImplementedError
-                addr = state.stack_pop()
-                # TODO:
-                if (addr == state.env.address).is_true():
-                    state.stack_push(bvv(len(self.code)))
-                else:
-                    # TODO: Improve that... It's clearly not constraining enough.
-                    state.stack_push(claripy.BVS("EXTCODESIZE[%s]" % addr, 256))
+
 
             elif op == const.opcode.EXTCODECOPY:
                 # addr, dstOst, ost, len
                 # mem[dstOst:dstOst+len-1] := addr.code[ost:ost+len-1]
                 raise NotImplementedError
-                old_state = state.clone()
-                addr = state.stack_pop()
-
-                mem_start  = state.find_one_solution(state.stack_pop())
-                code_start = state.find_one_solution(state.stack_pop())
-
-                size = state.stack_pop()
-                try:
-                    size = state.find_one_solution(size)
-                except MultipleSolutionsError:
-                    # TODO: Fuzz.
-                    # self.add_for_fuzzing(old_state, size, [])
-                    # return False
-                    raise
-                state.memory.write(# TODO:
-                    mem_start,
-                    size,
-                    claripy.BVS("EXTCODE[%s from %s]" % (addr, code_start), size * 8),
-                )
 
             elif op == const.opcode.CODECOPY:
                 raise NotImplementedError
                 # dstOst, ost, len
                 # mem[dstOst:dstOst+len-1] := this.code[ost:ost+len-1]
-                fos: Callable = state.find_one_solution
-                dst_ost, ost, size = [
-                    fos(state.stack_pop()) for _ in range(3)
-                ]
-                # assert size % 32 == 0, logger.critical("size = %#x" % (size))
-                # TODO: follow
-                # 这里的size是按bit来的
-                end = size // 32
-                # CHECK: 
-                for i in range(end):
-                    if ost + i < len(self.sb.instructions):
-                        state.memory.write(
-                            dst_ost + i,
-                            32,
-                            claripy.BVV(self.sb.bytecode[ost + i:ost + i + 4], 32),
-                        )
-                    else:
-                        raise NotImplementedError
-                        state.memory.write(mem_start + i, 1, claripy.BVV(0, 8))
 
             elif op == const.opcode.MLOAD:
                 addr = state.stack_pop()
@@ -886,7 +769,7 @@ class SymExecEngine:
                         addr.concrete_value, 
                         32
                     )
-                )# TODO
+                )
 
             elif op == const.opcode.MSTORE:
                 addr, value = state.stack_pop(), state.stack_pop()
@@ -900,20 +783,15 @@ class SymExecEngine:
             elif op == const.opcode.MSTORE8:
                 raise NotImplementedError
                 index, value = state.find_one_solution(state.stack_pop()), state.stack_pop()
-                state.memory.write(index, 1, value[7:0])# TODO
+                state.memory.write(index, 1, value[7:0])
 
             elif op == const.opcode.MSIZE:
                 raise NotImplementedError
-                state.stack_push(bvv(state.memory.size()))# TODO
+                state.stack_push(bvv(state.memory.size()))
 
             elif op == const.opcode.SLOAD:# stack.push(storage[key])
 
                 key = state.stack_pop()
-
-                # TODO: remove
-                # if state.pc == 0xb9: 
-                #     Observer.stop = True
-                #     import pdb; pdb.set_trace()
                 
                 if key.concrete:
                     state.stack_push(
@@ -988,7 +866,6 @@ class SymExecEngine:
                     # return anything...
                     utils = Todo()
                     state.solver.add(to_[159:0] == utils.DEFAULT_CALLER[159:0])
-                    # TODO: 这里能实现一个call指定账户的操作
 
                     memoutstart = state.find_one_solution(memoutstart)
                     state.memory.write(
@@ -1001,7 +878,7 @@ class SymExecEngine:
                 self.add_branch(state)
                 return False
 
-            elif op == const.opcode.DELEGATECALL:# TODO:
+            elif op == const.opcode.DELEGATECALL:
                 '''
                 When delegatecall is used, the called contract’s function is executed in the context of the calling contract, 
                 calling address(this) should return the calling contract’s address.
@@ -1021,7 +898,7 @@ class SymExecEngine:
 
                 # data = state.memory.read(argost.concrete, arglen.concrete * 8)
                 # NOTE: 无论data为什么 理论上都能进行攻击
-                # TODO: data能够符号化也可以进行攻击 所以这里有两种检测模式
+                # NOTE: data能够符号化也可以进行攻击 所以这里有两种检测模式 但是我暂时只实现其中一种
                 if addr.symbolic:
                     if state.solver.satisfiable(extra_constraints=[addr == ATTACK_ACCOUNT_ADDRESS]):
                         self.observer.add_a_vuln(
@@ -1044,28 +921,13 @@ class SymExecEngine:
                 state.pc += 1
 
             elif op == const.opcode.RETURNDATASIZE:# TODO:
-                # ref: https://eips.ethereum.org/EIPS/eip-211
+                # REF: https://eips.ethereum.org/EIPS/eip-211
                 # 就是一次call后返回的data的size
                 # raise NotImplementedError
                 state.stack_push(claripy.BVS("RETURNDATASIZE", 256))# TODO: 也许需要与CALLDATA保持一致？
 
             elif op == const.opcode.RETURNDATACOPY:
-                # TODO:
                 raise NotImplementedError
-                old_state = state.clone()
-                mem_start_position = state.find_one_solution(state.stack_pop())
-                returndata_start_position = state.find_one_solution(state.stack_pop())
-
-                size = state.stack_pop()
-                try:
-                    size = solution(size)
-                except MultipleSolutionsError:
-                    self.add_for_fuzzing(old_state, size, RETURNDATACOPY_SIZE_FUZZ)
-                    return False
-
-                state.memory.write(
-                    mem_start_position, size, claripy.BVS("RETURNDATACOPY", size * 8)
-                )
 
             elif op == const.opcode.SELFDESTRUCT:
 
@@ -1081,10 +943,9 @@ class SymExecEngine:
                         logger.critical("selfdestruct detect successfully")
 
                     else:
-                        # TODO: 偶尔会触发到这里 是不是selfdestruct(0)
-                        raise NotImplementedError(f"unevaluable constraints {state.solver.constraints} + {constraint}")
-                        # return True
-                # TODO: 0地址转账是ether frozen
+                        # can't meet attack condition
+                        # raise NotImplementedError(f"unevaluable constraints {state.solver.constraints} + {constraint}")
+                        return False
                         
                 return False
 
