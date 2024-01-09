@@ -33,6 +33,10 @@ class Memory:
             r += f"{i // 32:03x} {combine_bv8_to_bv256(self._mem[i:i+32])}\n"
         return r
 
+    def clean(self):
+        self._mem = [claripy.BVV(0, 8)] * 1024
+
+    
     def clone(self):
         new_memory = Memory()
         new_memory._mem = copy.deepcopy(self._mem)

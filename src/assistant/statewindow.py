@@ -39,7 +39,9 @@ class StateWindow:
         self.cur_evaluating_constraint = "None"
         self.average_constraint_eval_lapse = 0.00
         self.max_constraint_eval_lapse = 0.00
-        self.cur_evaluating_state = "None"
+
+        self.cur_evaluating_state = colored("None", "light_grey")
+        self.cur_executing_function_name = colored("None", "light_grey")
 
         self._vulns = {
             V.SELFDESTRUCT: colored("0", "green"),
@@ -85,20 +87,19 @@ class StateWindow:
                 f'┃      last new vuln : {self.last_vuln_found:25s}'                           + ' ' * 14 + '┃\n'
                 f'{colored("map coverage", "blue")} '                                          + '━' * 49 + '┫\n'
                 f'┃      coverage rate : {self.coverage_rate:>4.0%}'                           + ' ' * 35 + '┃\n'
-                f'{colored("cycle progress", "blue")} '                                        + '━' * 47 + '┫\n'
-                f'┃   cur states count : {self.cur_state_count:>5}'                            + ' ' * 34 + '┃\n'
-                f'┃ total states count : {self.total_state_count:>5}'                          + ' ' * 34 + '┃\n'
-                f'{colored("vulnerability", "blue")} '                                         + '━' * 48 + '┫\n'
+                f'{colored("cycle progress", "blue")} '  + '━' * 12 + f' {colored("constraint evaluating timing", "blue")} ' + '━' * 5 + '┫\n'
+                f'┃   cur states count : {self.cur_state_count:>3}' + ' ' * 1 +  f'┃ average lapse : {self.average_constraint_eval_lapse:>5.2f}'  + ' ' * 12 + '┃\n'
+                f'┃ total states count : {self.total_state_count:>3}' + ' ' * 1 +  f'┃ max lapse     : {self.max_constraint_eval_lapse:>5.2f}' + ' ' * 12 + '┃\n'
+                f'{colored("vulnerability", "blue")} '                           + '━' * 13 + '┻' + '━' * 34 + '┫\n'
                 f'┃  total vulns count : {self.total_vulns_count:>3}'                          + ' ' * 36 + '┃\n'
-                f'┃ >\t{VULN_DESC[V.SELFDESTRUCT]}     : {self._vulns[V.SELFDESTRUCT]:}'       + ' ' * 34 + '┃\n'
-                f'┃ >\t{VULN_DESC[V.DELEGATECALL]}     : {self._vulns[V.DELEGATECALL]:}'       + ' ' * 34 + '┃\n'
-                f'┃ >\t{VULN_DESC[V.ARBITRARY_JUMP]}   : {self._vulns[V.ARBITRARY_JUMP]:}'     + ' ' * 34 + '┃\n'
-                f'┃ >\t{VULN_DESC[V.ARBITRARY_SLOT_WRITE]}   : {self._vulns[V.ARBITRARY_SLOT_WRITE]:}'     + ' ' * 34 + '┃\n'
+                f'┃ >\t{VULN_DESC[V.SELFDESTRUCT]}' + ' ' * 17 + f': {self._vulns[V.SELFDESTRUCT]:}'       + ' ' * 22 + '┃\n'
+                f'┃ >\t{VULN_DESC[V.DELEGATECALL]}' + ' ' * 17 + f': {self._vulns[V.DELEGATECALL]:}'       + ' ' * 22 + '┃\n'
+                f'┃ >\t{VULN_DESC[V.ARBITRARY_JUMP]}' + ' ' * 15 + f': {self._vulns[V.ARBITRARY_JUMP]:}'     + ' ' * 22 + '┃\n'
+                f'┃ >\t{VULN_DESC[V.ARBITRARY_SLOT_WRITE]} : {self._vulns[V.ARBITRARY_SLOT_WRITE]:}'     + ' ' * 22 + '┃\n'
+                f'{colored("engine state", "blue")} '                                         + '━' * 49 + '┫\n'
+                f'┃  current evaluating state       : {self.cur_evaluating_state:<35s}'                          + ' ' * 0 + '┃\n'
+                f'┃  current exeuting function name : {self.cur_executing_function_name:<35s}'                  + ' ' * 0 + '┃\n'
                 f'┗'                                                                           + '━' * 61 + '┛\n'
-                f'current evaluating constraint : {self.cur_evaluating_constraint}\n'
-                f'evaluating constraint average lapse: {self.average_constraint_eval_lapse}\n'
-                f'evaluating constraint max lapse: {self.max_constraint_eval_lapse}\n'
-                f'current evaluating state: {self.cur_evaluating_state}\n'
             )
 
             time.sleep(0.5)
@@ -121,7 +122,16 @@ class StateWindow:
 
             self.average_constraint_eval_lapse = obs.average_constraint_eval_lapse
             self.max_constraint_eval_lapse = obs.max_constraint_eval_lapse
-            self.cur_evaluating_state = obs.cur_evaluating_state
+
+            s = obs.cur_evaluating_state
+            self.cur_evaluating_state = colored(s, "green" if "Run" in s else "yellow")
+            self.cur_evaluating_state.ljust(32)
+
+            self.cur_executing_function_name = obs.cur_executing_function_name
+            if len(self.cur_executing_function_name) >= 27:
+                 self.cur_executing_function_name = self.cur_executing_function_name[:27] + "..."
+
+            self.cur_executing_function_name = colored(self.cur_executing_function_name, "cyan")
 
             for v in V:
                 c = obs.vuln_count(v)

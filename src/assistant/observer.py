@@ -183,6 +183,18 @@ class Observer:
     def max_constraint_eval_lapse(self) -> float:
 
         return max(Observer.__per_constraint_eval_lapses)
+    
+    '-------------------------CURRENT EXECUTING FUNCTION NAME --------------------------------'
+    __cur_executing_function_name = "None"
+
+    @property
+    def cur_executing_function_name(self) -> str:
+        return Observer.__cur_executing_function_name
+    
+    @cur_executing_function_name.setter
+    def cur_executing_function_name(self, name) -> None:
+        Observer.__cur_executing_function_name = name
+
 
 
 class ConstraintEvalNotifier:

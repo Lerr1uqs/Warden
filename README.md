@@ -3,6 +3,8 @@ a simple demo solidity bytecode symbolic execute engine.
 develop for Graduation Project in NUAA.
 
 ![](./assets/effect.png)
+![](./result.png)
+
 # 查看汇编
 ```shell
 # squ @ squ-virtual-machine in ~/prac/warden [18:18:10] C:2

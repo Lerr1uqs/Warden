@@ -154,7 +154,10 @@ class SymExecEngine:
             for txn in txns: # Transaction execution of a set of functions with data dependencies
 
                 logger.debug(f"execute transaction {txn}")
+                self.observer.cur_executing_function_name = txn.fname
+
                 preserved_states = []
+                
                 if len(self.branch_queue) == 0:
                     self.add_branch(self.init_state[i])
 
