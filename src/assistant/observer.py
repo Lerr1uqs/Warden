@@ -137,6 +137,10 @@ class Observer:
             deepcopy(state)
         )
 
+    @classmethod
+    def clean_vulnerabilies_data(cls) -> None:
+        cls.__vuln_at_pc = []
+
     '---------------------------------------------------------------------------------'
 
     __cur_evaluating_constraint = "None"

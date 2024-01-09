@@ -70,7 +70,7 @@ class SymExecEngine:
                   
         self.tracer                             = [] # for debug
         self.fuzz                               = Fuzzer(con)
-        self.observer                           = Observer(self.sb.instructions)
+        self.observer                           = Observer(SolidityBinary.instructions)
 
         self.txnseqs                            = self.fuzz.generate_txn_seq()
         self.init_state                         = [deepcopy(State(con)) for _ in range(len(self.txnseqs))]
@@ -107,7 +107,6 @@ class SymExecEngine:
 
     def add_branch(self, s: State) -> None:
         
-        logger.debug(f"before downsize and simplify {s.solver.constraints}")
         s.solver.downsize()
         s.solver.simplify()
 
@@ -134,7 +133,7 @@ class SymExecEngine:
         self.states_hash_seen.add(hash(s))
         self.branch_queue.append((s.depth, s))
     
-    def execute(self):# NOTE: timeout
+    def execute(self) -> Observer: # NOTE: timeout
         
         # window thread
         wt = Thread(
@@ -156,6 +155,8 @@ class SymExecEngine:
 
                 logger.debug(f"execute transaction {txn}")
                 preserved_states = []
+                if len(self.branch_queue) == 0:
+                    self.add_branch(self.init_state[i])
 
                 # NOTE: the state not perserved if it encounter a vuln 
                 # NOTE: exhaust the states for one transaction
@@ -191,6 +192,7 @@ class SymExecEngine:
 
         # txn sequence fuzz over
         self.epilogue()
+        return self.observer
 
     def epilogue(self) -> None:
         self.observer.notify_statewindow_shutdown = True
@@ -508,8 +510,9 @@ class SymExecEngine:
                 state.stack_push(state.env.chainid)
 
             elif op == const.opcode.SELFBALANCE:
-                raise NotImplementedError
-                state.stack_push(state.env.balance)
+                state.stack_push(
+                    state.contract.balance
+                )
 
             elif op == const.opcode.BALANCE:
                 # addr.balance
@@ -838,45 +841,11 @@ class SymExecEngine:
                         raise NotImplementedError("TODO:不满足攻击条件 随便fuzz一下就行")
 
             elif op == const.opcode.CALL:
-                raise NotImplementedError
-                # gas, addr, val, argOst, argLen,
-                # mem[retOst:retOst+retLen-1] := returndata
-                state.pc += 1
-
-                # pylint:disable=unused-variable
-                gas, to_, value, meminstart, meminsz, memoutstart, memoutsz = (
-                    state.stack_pop() for _ in range(7)
-                )
-
-                # First possibility: the call fails
-                # (always possible with a call stack big enough)
-                state_fail = state.clone()
-                state_fail.stack.push(BVV0) # push a success
-                self.add_branch(state_fail)
-
-                # Second possibility: success.
-                state.calls.append(
-                    (memoutsz, memoutstart, meminsz, meminstart, value, to_, gas)
-                )
-
-                memoutsz = state.find_one_solution(memoutsz)
-                if memoutsz != 0:
-                    # If we expect some output, let's constraint the call to
-                    # be to a contract that we do control. Otherwise it could
-                    # return anything...
-                    utils = Todo()
-                    state.solver.add(to_[159:0] == utils.DEFAULT_CALLER[159:0])
-
-                    memoutstart = state.find_one_solution(memoutstart)
-                    state.memory.write(
-                        memoutstart,
-                        memoutsz,
-                        claripy.BVS("CALL_RETURN[%s]" % to_, memoutsz * 8),
-                    )
-
-                state.stack_push(BVV1)
-                self.add_branch(state)
-                return False
+                # NOTE: simple emulate
+                [gas, addr, val, argOst, argLen, retOst, retLen] = state.stack.pop(7)
+                state.stack_push(BVV1) # success
+                
+                
 
             elif op == const.opcode.DELEGATECALL:
                 '''

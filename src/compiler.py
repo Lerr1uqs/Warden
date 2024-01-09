@@ -224,7 +224,6 @@ class Artifact:
             graph.add_node(fname)
                 # fnames.append(fname)
 
-        print(self.funcnames)
         # build the topology graph
         for fname in self.funcnames:
             for var in dfa[fname]["w"]:
@@ -248,7 +247,6 @@ class Artifact:
         each_indegree = [deepcopy({}) for _ in range(len(subgraphs))]  # fname -> indegree
 
         for fname in self.funcnames:
-            print(fname)
             # TODO: removed NOTE: I skips some function that don't affect the storage state
 
             #       cuz I only analyze the state of a possible attack and not replicate the attack itself(e.g. actual transfer to attck)

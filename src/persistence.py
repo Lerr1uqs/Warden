@@ -53,6 +53,10 @@ class ConstraintPersistor:
     
     def add_constraint_cache(self, constraints: List[Type['claripy.Bool']], result: bool) -> None:
 
+        # TODO: move to decorated 
+        if not ConstraintPersistor.cache_enabled:
+            return 
+        
         if not all(isinstance(c, claripy.ast.bool.Bool) for c in constraints):
             raise TypeError
         
@@ -76,6 +80,9 @@ class ConstraintPersistor:
         '''
         dump the constraint cache to local storage
         '''
+        if not ConstraintPersistor.cache_enabled:
+            return 
+        
         with open(ConstraintPersistor.CACHE_NAME, 'w+b') as f:
             pickle.dump(self.satisfiable_cache, f)
 

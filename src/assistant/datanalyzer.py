@@ -1,8 +1,10 @@
 from vulns import VulnTypes
 from collections import defaultdict
-from .observer import Observer
+# from .observer import Observer
 from copy      import deepcopy
 from utils     import *
+class Observer:
+    pass
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -69,14 +71,16 @@ class DataAnalyzer:
         for i, vt in enumerate(VulnTypes):
             plt.bar(x + i * width, count[vt.value],  width=width, label=vt.name)
 
-        plt.xticks(x + (len(VulnTypes) - 1) * width / 2, contract_names, rotation=45, ha='right')
+        plt.xticks(x + (len(VulnTypes) - 1) * width / 2, contract_names, rotation=25, ha='right')
         # 设置 y 轴刻度标签为整数
         plt.yticks(np.arange(0, max(max(cs) for cs in count.values()) + 1, step=1))
         # 设置 y 轴范围为整数
         plt.ylim(0, max(max(cs) for cs in count.values()) + 1)
 
+        # 调整底部空间
+        plt.subplots_adjust(bottom=0.2) 
         plt.legend()
-        plt.savefig('test-histogram.png')
+        plt.savefig('result.png')
 
 if __name__ == "__main__":
     da = DataAnalyzer()

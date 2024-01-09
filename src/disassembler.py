@@ -11,6 +11,7 @@ Instruction = evmdasm.Instruction
 class SolidityBinary:
 
     instructions: List[Instruction] = []
+    __instruction_cache = {} # dedicated cache for `instruction_at` function
     
     def __init__(self, artifact: Artifact) -> None:
 
@@ -20,9 +21,11 @@ class SolidityBinary:
         evmdis = evmdasm.EvmDisassembler()
 
         SolidityBinary.instructions: List[Instruction] = list(evmdis.disassemble(self.rtcode))
-        self.bytecode = unhexlify(self.rtcode)
+        SolidityBinary.__instruction_cache = {} # clean for each constructor
 
-    _instruction_cache = {} # dedicated cache for `instruction_at` function
+        self.bytecode = unhexlify(self.rtcode)
+        self._end_instruction_address = None # dedicated cache for `end_addr` property
+
 
     @classmethod
     def instruction_at(cls, addr: int) -> Instruction:
@@ -32,18 +35,17 @@ class SolidityBinary:
 
         assert len(cls.instructions) != 0, "SolidityBinary isn't initialized"
 
-        cache = cls._instruction_cache.get(addr)
+        cache = cls.__instruction_cache.get(addr)
         if cache is not None:
             return cache 
         
         for i in cls.instructions:
             if i.address == addr:
-                cls._instruction_cache[addr] = i
+                cls.__instruction_cache[addr] = i
                 return i
             
         raise RuntimeError(f"Can't found instruction at pc: {hex(addr)}")
         
-    _end_instruction_address = None # dedicated cache for `end_addr` property
 
     @property
     def end_addr(self) -> int:
