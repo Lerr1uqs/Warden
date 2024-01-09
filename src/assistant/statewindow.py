@@ -74,7 +74,8 @@ class StateWindow:
                 os.system("clear")
 
             result = pyfiglet.figlet_format("Warden", font="slant")
-            result = "    " + "\n    ".join(result.split('\n'))
+            indent = "            "
+            result = indent + ("\n" + indent ).join(result.split('\n'))
             rich_text = Text(result)
             rich_text.stylize("red")  # 在艺术字上应用彩色
             console.print(rich_text)
