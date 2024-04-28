@@ -311,6 +311,10 @@ class Compiler:
         conname: contract name
         '''
         return self.artifacts[conname]
+    
+
+    def contract_name_to_path(self, conname: str) -> str:
+        return self.cname2path[conname]
 
 
     def __init__(self, contracts_path: Union[Path, str]) -> None:
@@ -330,10 +334,14 @@ class Compiler:
             for f in os.listdir(con_path) 
             if os.path.isfile(os.path.join(con_path, f)) and f.endswith('.sol')
         ]
+        
+        self.cname2path = {}
 
         self.artifacts: Dict[str, Artifact] = {} # contract name -> Bytecode
 
         for file in sol_files:
+
+            import pdb; pdb.set_trace()
 
             folder_name = file.split('.')[0]
             folder_path = os.path.join(con_path, folder_name)
@@ -383,6 +391,7 @@ class Compiler:
                     continue
                 
                 contract_name = output_filename.split('.')[0] # e.g. ArbitraryJump
+                self.cname2path[contract_name] = file
 
                 # contract name with path but not suffix
                 cnwp = Path(fpath).absolute().__str__().split('.')[0] # e.g. /xxx/contracts/delegatecall/Attack

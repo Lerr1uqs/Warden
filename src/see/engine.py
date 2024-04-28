@@ -154,11 +154,11 @@ class SymExecEngine:
         self.states_hash_seen.add(hash(s))
         self.branch_queue.append((s.depth, s))
     
-    def execute(self) -> Observer: # NOTE: timeout
+    def execute(self, benchmark_mode_enable=False) -> Observer: # NOTE: timeout
         
         # window thread
         wt = Thread(
-            target=StateWindow().show_terminal, 
+            target=StateWindow(benchmark_mode_enable).show_terminal, 
             args=(self.observer,)
         )
         self.wt = wt

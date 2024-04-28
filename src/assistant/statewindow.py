@@ -18,7 +18,7 @@ class StateWindow:
 
     __count_down = 8
 
-    def __init__(self) -> None:
+    def __init__(self, benchmark_mode_enable = False) -> None:
         now = datetime.now()
         # processing time
         self.create_time: str = now.strftime(r"%Y/%d/%m, %H:%M:%S")
@@ -50,9 +50,17 @@ class StateWindow:
             V.ARBITRARY_SLOT_WRITE: colored("0", "green"),
         }
 
-        pass
+        self.__benchmark_mode_enabled = benchmark_mode_enable
+
+    # def enable_benchmark_mode(self) -> None:
+    #     # benchmark mode 暂停终端窗口打印输出 
+    #     self.__benchmark_mode_enabled = True
     
     def show_terminal(self, observer: Observer) -> None:
+
+        if self.__benchmark_mode_enabled:
+            print("[*] benchmark mode enabled, no terminal output...")
+            return
 
         try:
 
