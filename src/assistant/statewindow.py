@@ -21,7 +21,7 @@ class StateWindow:
     def __init__(self) -> None:
         now = datetime.now()
         # processing time
-        self.create_time: str = now.strftime("%Y/%d/%m, %H:%M:%S")
+        self.create_time: str = now.strftime(r"%Y/%d/%m, %H:%M:%S")
         self.last_new_path_found: str = "None"
         self.last_vuln_found: str = "None"
         # state's status
@@ -57,7 +57,7 @@ class StateWindow:
         try:
 
             if observer.debug:
-                StateWindow.__count_down = 1
+                StateWindow.__count_down = 3
             
             self._show_terminal(observer)
             

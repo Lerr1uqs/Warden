@@ -4,6 +4,13 @@ develop for Graduation Project in NUAA.
 
 ![](./assets/effect.png)
 ![](./result.png)
+# solc版本
+选用0.8.10会把z3跑崩 0.8.20则不会
+```shell
+~ solc --version                                                                                                                                                              0 [16:19:49]
+solc, the solidity compiler commandline interface
+Version: 0.8.20+commit.a1b79de6.Linux.g++
+```
 
 # 查看汇编
 ```shell

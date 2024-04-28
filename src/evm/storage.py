@@ -1,7 +1,6 @@
 from utils import *
 import copy
 
-BV = claripy.ast.BV
 from numbers import Integral
 from collections import defaultdict
 

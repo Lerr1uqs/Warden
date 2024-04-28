@@ -350,7 +350,7 @@ class Compiler:
 
             logger.info("compiling sol files...")
 
-            subprocess.run([
+            result = subprocess.run([
                     'solc', 
                     '--bin-runtime', 
                     '--bin', 
@@ -365,6 +365,9 @@ class Compiler:
                 stdout = subprocess.DEVNULL,
                 stderr = subprocess.STDOUT
             )
+            
+            if result.returncode != 0:
+                raise RuntimeError(f"solc failed with return code {result.returncode}")
 
             cnwps = set() # skip processed artifact files
             contract_names = set() # prevent same-name contract

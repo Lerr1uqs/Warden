@@ -1,7 +1,7 @@
 import claripy
 import numbers
 
-from typing import (Callable, Optional, TypeVar, List, Tuple, Type, Dict, Any, Union, Set, Generic, Sequence)
+from typing import (Callable, Optional, TypeVar, List, Tuple, Type, Dict, Any, Union, Set, Generic, Sequence, NewType)
 from loguru import logger
 BV = claripy.ast.BV
 
@@ -31,8 +31,8 @@ BVVify = lambda v: claripy.BVV(v, 256)
 
 # TEMP: temporary
 EXP_EXPONENT_FUZZ = {min, max}
-def Sha3(x):# TODO:
-    return claripy.BV("SHA3", [x], length=256)
+# def Sha3(x):# TODO:
+#     return claripy.BV("SHA3", [x], length=256)
 
 DEFAULT_ADDRESS = claripy.BVV(0xffffffffffffffffffffffffff, 256)
 DEFAULT_CALLER = claripy.BVV(0xCAFEBABEFFFFFFFFF0202FFFFFFFFF7CFF7247C9, 256)

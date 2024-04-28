@@ -11,7 +11,7 @@ from assistant    import Observer, ConstraintEvalNotifier
 from version      import VersionControl, Stage
 from persistence  import ConstraintPersistor
 from collections  import defaultdict, deque
-from disassembler import SolidityBinary
+from disassembler import SolidityBinary, Instruction
 from evm          import Transaction
 from assistant    import StateWindow
 from vulns        import VulnTypes
@@ -21,6 +21,7 @@ from rich.console import Console
 from fuzzer       import Fuzzer
 from threading    import Thread
 from .state       import State # TEMP: 
+from cfg          import CFG
 from utils        import *
 
 console = Console()
@@ -56,6 +57,16 @@ def calculate_bv_args_leafnode(bv: BV) -> int:
             
     return nbr
 
+# __obs = None
+
+# def init_observer_onlyone(ins: List[Instruction]) -> Observer:
+#     global __obs
+    
+#     if __obs is None:
+#         __obs = Observer(ins)
+
+#     return __obs
+        
 
 class SymExecEngine:
     
@@ -71,10 +82,12 @@ class SymExecEngine:
         self.tracer                             = [] # for debug
         self.fuzz                               = Fuzzer(con)
         self.observer                           = Observer(SolidityBinary.instructions)
+        # self.observer                           = init_observer_onlyone(SolidityBinary.instructions)
 
         self.txnseqs                            = self.fuzz.generate_txn_seq()
         self.init_state                         = [deepcopy(State(con)) for _ in range(len(self.txnseqs))]
         # self.add_branch(State(con)) # initial state 
+        self.cfg                                = CFG(SolidityBinary.instructions)
     
     # TEMP:
     def add_for_fuzz(self, s: State, var: BV, tries: List[Callable]=[]) -> None:
@@ -114,6 +127,10 @@ class SymExecEngine:
             logger.debug("avoided adding visited state")
             return
         
+        if self.cfg.is_dead_basicblock(s.pc):
+            # 死区规避
+            return
+        
         logger.debug(s.solver.constraints)
         
         # NOTE: cache machenism maybe conflict with perf counter, so I add a swicth for ConstraintPersistor
@@ -124,11 +141,14 @@ class SymExecEngine:
                 
                 logger.debug(f"{s.solver.constraints} hit local cache")
             else:
+                logger.debug("before satisfiable")
                 if not s.solver.satisfiable():
+                    logger.debug("after satisfiable 1")
                     self.cp.add_constraint_cache(s.solver.constraints, False)
                     logger.debug(f"state can't satisfiable {s.solver.constraints}")
                     return
-            
+        
+        logger.debug("after satisfiable 2")
         self.cp.add_constraint_cache(s.solver.constraints, True)
         self.states_hash_seen.add(hash(s))
         self.branch_queue.append((s.depth, s))
@@ -221,10 +241,10 @@ class SymExecEngine:
 
             self.observer.hit_at(state.pc)
 
-            logger.debug("------- NEW STEP -------")
-            logger.debug("PC: %#x, op: %#x(%s)" % (state.pc, op, curinst.name))
-            logger.debug("\nStorage: %s\n" % state.storage)
-            logger.debug("\nStack: %s" % state.stack)
+            # logger.debug("------- NEW STEP -------")
+            # logger.debug("PC: %#x, op: %#x(%s)" % (state.pc, op, curinst.name))
+            # logger.debug("\nStorage: %s\n" % state.storage)
+            # logger.debug("\nStack: %s" % state.stack)
 
 
             bps = []

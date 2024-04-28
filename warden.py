@@ -67,6 +67,7 @@ def main(debug, enable_cache, not_logging, test_dir, contract):
             da.add_contract_result(conname, observer)
             Observer.clean_vulnerabilies_data()
 
+        logger.debug("fuzzing over")
         da.draw_vuln_catalog_histogram()
 
 

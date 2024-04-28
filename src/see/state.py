@@ -3,8 +3,6 @@ import copy
 from evm import Stack, Contract, opcode, Memory, Storage
 from utils import *
 
-BV = claripy.ast.BV
-
 STATE_COUNTER = 1
 
 class State:

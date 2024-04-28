@@ -1,10 +1,12 @@
 from vulns import VulnTypes
 from collections import defaultdict
-# from .observer import Observer
+from .observer import Observer
 from copy      import deepcopy
 from utils     import *
-class Observer:
-    pass
+# TODO: circular import
+# class Observer:
+#     vulnerabilities = {}
+#     pass
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -26,7 +28,7 @@ class DataAnalyzer:
     def __init__(self) -> None:
         self.catalog: Dict[str, Dict[VulnTypes, int]] = {}
     
-    def add_contract_result(self, contract_name: str, obs: Type['Observer']) -> None:
+    def add_contract_result(self, contract_name: str, obs: 'Observer') -> None:
         self.catalog[contract_name] = deepcopy(obs.vulnerabilities)
 
     def debug_simulate_result(self) -> None:
@@ -78,6 +80,7 @@ class DataAnalyzer:
         plt.ylim(0, max(max(cs) for cs in count.values()) + 1)
 
         # 调整底部空间
+        # plt.figure(figsize=(18, 9))
         plt.subplots_adjust(bottom=0.2) 
         plt.legend()
         plt.savefig('result.png')
