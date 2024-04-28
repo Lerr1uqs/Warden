@@ -1,0 +1,3 @@
+[submodule "src/evmcfg"]
+	path = src/evmcfg
+	url = git@github.com:Lerr1uqs/Evmcfg.git
