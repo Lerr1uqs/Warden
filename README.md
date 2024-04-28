@@ -4,6 +4,7 @@ develop for Graduation Project in NUAA.
 
 ![](./assets/effect.png)
 ![](./result.png)
+
 # solc版本
 选用0.8.10会把z3跑崩 0.8.20则不会
 ```shell
@@ -11,6 +12,11 @@ develop for Graduation Project in NUAA.
 solc, the solidity compiler commandline interface
 Version: 0.8.20+commit.a1b79de6.Linux.g++
 ```
+
+# python版本
+3.11 会出现Web3和mythril冲突的情况 没法benchmark
+这里使用3.8
+
 # 增加SolSEE testcase
 https://github.com/ntu-SRSLab/SolSEE
 

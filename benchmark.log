@@ -1,0 +1,267 @@
+-----------------DelegateCall-------------------
+warden: 0.26500844955444336 < mythril: 10.755138874053955
+===================
+==== Delegatecall to user-supplied address ====
+SWC ID: 112
+Severity: High
+Contract: DelegateCall
+Function name: vuln(address,bytes)
+PC address: 123
+Estimated Gas Usage: 1797 - 38760
+The contract delegates execution to another contract with a user-supplied address.
+The smart contract delegates execution to a user-supplied address.This could allow an attacker to execute arbitrary code in the context of this contract account and manipulate the state of the contract account or execute actions on its behalf.
+--------------------
+In file: contracts/simple-delegatecall.sol:14
+
+addr.delegatecall(data)
+
+--------------------
+Initial State:
+
+Account: [CREATOR], balance: 0x1, nonce:0, storage:{}
+Account: [ATTACKER], balance: 0x1, nonce:0, storage:{}
+
+Transaction Sequence:
+
+Caller: [CREATOR], calldata: , decoded_data: , value: 0x0
+Caller: [ATTACKER], function: vuln(address,bytes), txdata: 0x9dbb053b000000000000000000000000deadbeefdeadbeefdeadbeefdeadbeefdeadbeef00000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000000, decoded_data: ('0xdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef', ''), value: 0x0
+
+==== Unchecked return value from external call. ====
+SWC ID: 104
+Severity: Medium
+Contract: DelegateCall
+Function name: vuln(address,bytes)
+PC address: 123
+Estimated Gas Usage: 1797 - 38760
+The return value of a message call is not checked.
+External calls return a boolean value. If the callee halts with an exception, 'false' is returned and execution continues in the caller. The caller should check whether an exception happened and react accordingly to avoid unexpected behavior. For example it is often desirable to wrap external calls in require() so the transaction is reverted if the call fails.
+--------------------
+In file: contracts/simple-delegatecall.sol:14
+
+addr.delegatecall(data)
+
+--------------------
+Initial State:
+
+Account: [CREATOR], balance: 0x450c0000000000000, nonce:0, storage:{}
+Account: [ATTACKER], balance: 0x0, nonce:0, storage:{}
+
+Transaction Sequence:
+
+Caller: [CREATOR], calldata: , decoded_data: , value: 0x0
+Caller: [SOMEGUY], function: vuln(address,bytes), txdata: 0x9dbb053b00000000000000000000000000000000000000000000000000000000000000130000000000000000000000000000000000000000000000000000000000000000, decoded_data: ('0x0000000000000000000000000000000000000013', '00000000000000000000000000000000000000'), value: 0x0
+
+
+
+-----------------ArbiStorageWrite-------------------
+warden: 2.302469491958618 < mythril: 12.137086629867554
+===================
+==== Write to an arbitrary storage location ====
+SWC ID: 124
+Severity: High
+Contract: ArbiStorageWrite
+Function name: arbi_storage_write(uint256,uint256)
+PC address: 213
+Estimated Gas Usage: 7418 - 27513
+The caller can write to arbitrary storage locations.
+It is possible to write to arbitrary storage locations. By modifying the values of storage variables, attackers may bypass security controls or manipulate the business logic of the smart contract.
+--------------------
+In file: contracts/arbi-storage-write.sol:28
+
+sstore(add(sl, idx), value)
+
+--------------------
+Initial State:
+
+Account: [CREATOR], balance: 0x2080080100000008, nonce:0, storage:{}
+Account: [ATTACKER], balance: 0x0, nonce:0, storage:{}
+
+Transaction Sequence:
+
+Caller: [CREATOR], calldata: , decoded_data: , value: 0x0
+Caller: [SOMEGUY], function: asw_prev2(uint256), txdata: 0x94f2a95d0000000000000000000000000000000000000000000000000000000000002fa6, decoded_data: (12198,), value: 0x0
+Caller: [ATTACKER], function: arbi_storage_write(uint256,uint256), txdata: 0xb6ed73e90000000000000000000000000000000000000000000000000000004b847e6e1bb1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1, decoded_data: (324345425435, 80373332529431241529302213123677488980505048179679920921505852429022054691249), value: 0x0
+
+
+
+-----------------All-------------------
+warden: 8.696975469589233 < mythril: 191.93958020210266
+===================
+==== Write to an arbitrary storage location ====
+SWC ID: 124
+Severity: High
+Contract: All
+Function name: arbi_storage_write(uint256,uint256)
+PC address: 1466
+Estimated Gas Usage: 7397 - 27492
+The caller can write to arbitrary storage locations.
+It is possible to write to arbitrary storage locations. By modifying the values of storage variables, attackers may bypass security controls or manipulate the business logic of the smart contract.
+--------------------
+In file: contracts/all.sol:40
+
+sstore(add(sl, idx), value)
+
+--------------------
+Initial State:
+
+Account: [CREATOR], balance: 0x4200020000000001, nonce:0, storage:{}
+Account: [ATTACKER], balance: 0x2, nonce:0, storage:{}
+
+Transaction Sequence:
+
+Caller: [CREATOR], calldata: , decoded_data: , value: 0x0
+Caller: [ATTACKER], function: asw_prev2(uint256), txdata: 0x94f2a95d0000000000000000000000000000000000000000000000000000000000002fa6, decoded_data: (12198,), value: 0x0
+Caller: [SOMEGUY], function: arbi_storage_write(uint256,uint256), txdata: 0xb6ed73e90000000000000000000000000000000000000000000000000000004b847e6e16d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4, decoded_data: (324345425430, 96266364385533464430576662046438574372130340192610978730843167881088562681044), value: 0x0
+
+
+
+-----------------ArbitraryJump-------------------
+warden: 0.1284646987915039 < mythril: 4.501862287521362
+===================
+==== Jump to an arbitrary instruction ====
+SWC ID: 127
+Severity: High
+Contract: ArbitraryJump
+Function name: breakIt()
+PC address: 171
+Estimated Gas Usage: 257 - 918
+The caller can redirect execution to arbitrary bytecode locations.
+It is possible to redirect the control flow to arbitrary locations in the code. This may allow an attacker to bypass security controls or manipulate the business logic of the smart contract. Avoid using low-level-operations and assembly to prevent this issue.
+--------------------
+In file: contracts/arbijump.sol:32
+
+func.f()
+
+--------------------
+Initial State:
+
+Account: [CREATOR], balance: 0x80000000000000, nonce:0, storage:{}
+Account: [ATTACKER], balance: 0x0, nonce:0, storage:{}
+
+Transaction Sequence:
+
+Caller: [CREATOR], calldata: , decoded_data: , value: 0x1
+Caller: [SOMEGUY], function: breakIt(), txdata: 0x6a1f9e19, value: 0x1
+
+
+
+-----------------DepEvil-------------------
+warden: 3.1298792362213135 < mythril: 90.14866209030151
+===================
+The analysis was completed successfully. No issues were detected.
+
+
+-----------------Servers-------------------
+warden: 0.37099266052246094 < mythril: 19.454675436019897
+===================
+==== Delegatecall to user-supplied address ====
+SWC ID: 112
+Severity: High
+Contract: Servers
+Function name: Func(address,bytes)
+PC address: 143
+Estimated Gas Usage: 1797 - 38760
+The contract delegates execution to another contract with a user-supplied address.
+The smart contract delegates execution to a user-supplied address.This could allow an attacker to execute arbitrary code in the context of this contract account and manipulate the state of the contract account or execute actions on its behalf.
+--------------------
+In file: contracts/delegatecall.sol:18
+
+addr.delegatecall(data)
+
+--------------------
+Initial State:
+
+Account: [CREATOR], balance: 0x4, nonce:0, storage:{}
+Account: [ATTACKER], balance: 0x1, nonce:0, storage:{}
+
+Transaction Sequence:
+
+Caller: [CREATOR], calldata: , decoded_data: , value: 0x1
+Caller: [ATTACKER], function: Func(address,bytes), txdata: 0x003f3ab7000000000000000000000000deadbeefdeadbeefdeadbeefdeadbeefdeadbeef00000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000000, decoded_data: ('0xdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef', ''), value: 0x0
+
+==== Unchecked return value from external call. ====
+SWC ID: 104
+Severity: Medium
+Contract: Servers
+Function name: Func(address,bytes)
+PC address: 143
+Estimated Gas Usage: 1797 - 38760
+The return value of a message call is not checked.
+External calls return a boolean value. If the callee halts with an exception, 'false' is returned and execution continues in the caller. The caller should check whether an exception happened and react accordingly to avoid unexpected behavior. For example it is often desirable to wrap external calls in require() so the transaction is reverted if the call fails.
+--------------------
+In file: contracts/delegatecall.sol:18
+
+addr.delegatecall(data)
+
+--------------------
+Initial State:
+
+Account: [CREATOR], balance: 0x2, nonce:0, storage:{}
+Account: [ATTACKER], balance: 0x0, nonce:0, storage:{}
+
+Transaction Sequence:
+
+Caller: [CREATOR], calldata: , decoded_data: , value: 0x1
+Caller: [SOMEGUY], function: withdraw(), txdata: 0x3ccfd60b, value: 0x0
+Caller: [CREATOR], function: Func(address,bytes), txdata: 0x003f3ab7000000000000000000000000d6d6d6d6d6d6d6d6d6d6d6d6d6d6d6d6d6d6d600000000000000000000000000000000000000000000000000000000000000001f, decoded_data: ('0xd6d6d6d6d6d6d6d6d6d6d6d6d6d6d6d6d6d6d600', ''), value: 0x0
+
+
+
+-----------------ArbitraryJumpWithFuncSeqOrder-------------------
+warden: 0.3735640048980713 < mythril: 6.825766324996948
+===================
+The analysis was completed successfully. No issues were detected.
+
+
+-----------------SelfDestruct-------------------
+warden: 1.0514276027679443 < mythril: 184.82704305648804
+===================
+==== Unprotected Selfdestruct ====
+SWC ID: 106
+Severity: High
+Contract: SelfDestruct
+Function name: middle_vuln(address,uint256)
+PC address: 213
+Estimated Gas Usage: 7255 - 27350
+Any sender can cause the contract to self-destruct.
+Any sender can trigger execution of the SELFDESTRUCT instruction to destroy this contract account and withdraw its balance to an arbitrary address. Review the transaction trace generated for this issue and make sure that appropriate security controls are in place to prevent unrestricted access.
+--------------------
+In file: contracts/simple-selfdestruct.sol:18
+
+selfdestruct(payable(addr))
+
+--------------------
+Initial State:
+
+Account: [CREATOR], balance: 0x1, nonce:0, storage:{}
+Account: [ATTACKER], balance: 0x1, nonce:0, storage:{}
+
+Transaction Sequence:
+
+Caller: [CREATOR], calldata: , decoded_data: , value: 0x0
+Caller: [ATTACKER], function: middle_vuln(address,uint256), txdata: 0x1060e113000000000000000000000000deadbeefdeadbeefdeadbeefdeadbeefdeadbeef0000000000000000000000000000000000000000000000000000000006800390, decoded_data: ('0xdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef', 109052816), value: 0x0
+
+==== Unprotected Selfdestruct ====
+SWC ID: 106
+Severity: High
+Contract: SelfDestruct
+Function name: vuln(address)
+PC address: 244
+Estimated Gas Usage: 447 - 542
+Any sender can cause the contract to self-destruct.
+Any sender can trigger execution of the SELFDESTRUCT instruction to destroy this contract account and withdraw its balance to an arbitrary address. Review the transaction trace generated for this issue and make sure that appropriate security controls are in place to prevent unrestricted access.
+--------------------
+In file: contracts/simple-selfdestruct.sol:11
+
+selfdestruct(payable(addr))
+
+--------------------
+Initial State:
+
+Account: [CREATOR], balance: 0x1, nonce:0, storage:{}
+Account: [ATTACKER], balance: 0x1, nonce:0, storage:{}
+
+Transaction Sequence:
+
+Caller: [CREATOR], calldata: , decoded_data: , value: 0x0
+Caller: [ATTACKER], function: vuln(address), txdata: 0x94321f82000000000000000000000000deadbeefdeadbeefdeadbeefdeadbeefdeadbeef, decoded_data: ('0xdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef',), value: 0x0

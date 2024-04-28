@@ -38,7 +38,7 @@ logger.add("loguru.log")
 @click.option('--not-logging', '-l', default=False, is_flag=True, help='enable the debug logger')
 @click.option('--test-dir', '-p', type=click.Path(exists=True), help='test all contracts in given dir.')
 @click.option('--contract', '-c', type=str, help="The name of the contract being executed")
-@click.option('--benchmark', '-b', default=False, help="Whether enable benchmark with mythril")
+@click.option('--benchmark', '-b', is_flag=True, default=False, help="Whether enable benchmark with mythril")
 def main(debug, enable_cache, not_logging, test_dir, contract, benchmark):
 
     if test_dir and contract:
@@ -80,6 +80,8 @@ def main(debug, enable_cache, not_logging, test_dir, contract, benchmark):
         if contract:
             raise NotImplementedError("only support batch benchmark")
         
+
+        
         compiler = Compiler(test_dir)
         da = DataAnalyzer()
 
@@ -96,7 +98,9 @@ def main(debug, enable_cache, not_logging, test_dir, contract, benchmark):
 
             start = time.time()
 
-            observer = SymExecEngine(Contract(artifact)).execute()
+            observer = SymExecEngine(Contract(artifact)).execute(
+                benchmark_mode_enable=True
+            )
             
             da.add_contract_result(conname, observer)
             Observer.clean_vulnerabilies_data()
@@ -109,12 +113,22 @@ def main(debug, enable_cache, not_logging, test_dir, contract, benchmark):
             # ---------- mythril test ---------------------
             start = time.time()
 
+            def execute_cmd(cmd: str):
+                process = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                print(f"[!] waiting command `{cmd}` to be executed...")
+                process.wait()
+                stdout, stderr = process.communicate()
+                return process.returncode, stdout.decode('utf-8'), stderr.decode('utf-8')
+
             command = f"myth analyze {path}"
-            result = subprocess.run(command, shell=True, capture_output=True, text=True)
-            if result.returncode != 0:
-                raise RuntimeError(f"mythril analyze {conname} failed with return code {result.returncode}")
+            retcode, result, error = execute_cmd(command)
+            # retcode == 1 repr issue detected
+            # retcode == 0 repr not issue detected
+            # if retcode == 1:
+                # raise RuntimeError(f"mythril analyze {conname} failed with return code {retcode} and error {error} and output {result}")
+
             
-            myth_result[conname] = result.stdout
+            myth_result[conname] = result
 
             end = time.time()
             elapsed = end - start
@@ -123,11 +137,22 @@ def main(debug, enable_cache, not_logging, test_dir, contract, benchmark):
 
 
         logger.debug("fuzzing over")
-        for conname, res in results.items():
-            sign = "<" if res['warden'] < res['mythril'] else ">"
-            print(f"-----------------{conname}-------------------")
-            print(f"warden: {res['warden']} {sign} mythril: {res['mythril']}")
+        f = open("benchmark_result.txt", "w")
 
+        for conname, res in results.items():
+            f.write(f"('{conname}', {res['warden']:.2f}, {res['mythril']:.2f}),\n")
+
+        for conname, res in results.items():
+
+            sign = "<" if res['warden'] < res['mythril'] else ">"
+            
+            f.write(f"-----------------{conname}-------------------\n")
+            f.write(f"warden: {res['warden']} {sign} mythril: {res['mythril']}\n")
+            f.write("===================\n")
+            f.write(f"myth_result[conname]\n")
+
+        f.close()
+        
         da.draw_vuln_catalog_histogram()
 
 

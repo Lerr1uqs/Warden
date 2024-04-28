@@ -341,8 +341,6 @@ class Compiler:
 
         for file in sol_files:
 
-            import pdb; pdb.set_trace()
-
             folder_name = file.split('.')[0]
             folder_path = os.path.join(con_path, folder_name)
 
@@ -391,7 +389,7 @@ class Compiler:
                     continue
                 
                 contract_name = output_filename.split('.')[0] # e.g. ArbitraryJump
-                self.cname2path[contract_name] = file
+                self.cname2path[contract_name] = Path(contracts_path) / file
 
                 # contract name with path but not suffix
                 cnwp = Path(fpath).absolute().__str__().split('.')[0] # e.g. /xxx/contracts/delegatecall/Attack
