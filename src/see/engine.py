@@ -21,8 +21,9 @@ from rich.console import Console
 from fuzzer       import Fuzzer
 from threading    import Thread
 from .state       import State # TEMP: 
-from cfg          import CFG
 from utils        import *
+
+from evmcfg.evmcfg.cfg   import CFG
 
 console = Console()
 
@@ -87,7 +88,7 @@ class SymExecEngine:
         self.txnseqs                            = self.fuzz.generate_txn_seq()
         self.init_state                         = [deepcopy(State(con)) for _ in range(len(self.txnseqs))]
         # self.add_branch(State(con)) # initial state 
-        self.cfg                                = CFG(SolidityBinary.instructions)
+        self.cfg                                = CFG(SolidityBinary.instructions, emu=True)
     
     # TEMP:
     def add_for_fuzz(self, s: State, var: BV, tries: List[Callable]=[]) -> None:
