@@ -11,7 +11,7 @@ datas = [
     ('ArbiStorageWrite', 2.3, 12.13),
     ('All', 8.69, 191.93),
     ('ArbitraryJump', 0.12, 4.5),
-    ('DepEvil', 3.12, 90.14),
+    ('DepEvil', 3.12, 0),
     ('Servers', 0.37, 19.45),
     ('ArbitraryJumpWithFuncSeqOrder', 0.37, 0),
 ]
